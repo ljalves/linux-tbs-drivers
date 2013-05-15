@@ -24,7 +24,7 @@
 
 extern void saa716x_input_irq_handler(struct saa716x_dev *saa716x);
 
-extern int saa716x_input_init(struct saa716x_dev *saa716x);
+extern int saa716x_input_init(struct saa716x_dev *saa716x, int gpio_in, const char *map_name);
 extern void saa716x_input_fini(struct saa716x_dev *saa716x);
 
 #endif

@@ -35,6 +35,7 @@
 #include "saa716x_priv.h"
 
 #include "saa716x_input.h"
+#include <media/rc-core.h>
 
 #include "saa716x_tbs.h"
 #include "tbsctrl.h"
@@ -181,10 +182,10 @@ static int saa716x_tbs_pci_probe(struct pci_dev *pdev, const struct pci_device_i
 		SAA716x_EPWR(MSI, MSI_CONFIG37, data);
 		SAA716x_EPWR(MSI, MSI_INT_ENA_SET_H, MSI_INT_EXTINT_4);
 
-		saa716x_gpio_set_input(saa716x, 4);
+		saa716x_gpio_set_input(saa716x, saa716x->config->rc_gpio_in);
 		msleep(1);
 	
-		saa716x_input_init(saa716x);
+		saa716x_input_init(saa716x,saa716x->config->rc_gpio_in, saa716x->config->rc_map_name);
 	}
 
 	/* set default port mapping */
@@ -400,6 +401,75 @@ static int load_config_tbs6280(struct saa716x_dev *saa716x)
 
 	return ret;
 }
+
+static irqreturn_t saa716x_skystar2_pci_irq(int irq, void *dev_id)
+{
+	struct saa716x_dev *saa716x	= (struct saa716x_dev *) dev_id;
+
+	u32 stat_h, stat_l, mask_h, mask_l;
+	u32 fgpiStatus;
+	u32 activeBuffer;
+
+	if (unlikely(saa716x == NULL)) {
+		printk("%s: saa716x=NULL", __func__);
+		return IRQ_NONE;
+	}
+
+	stat_l = SAA716x_EPRD(MSI, MSI_INT_STATUS_L);
+	stat_h = SAA716x_EPRD(MSI, MSI_INT_STATUS_H);
+	mask_l = SAA716x_EPRD(MSI, MSI_INT_ENA_L);
+	mask_h = SAA716x_EPRD(MSI, MSI_INT_ENA_H);
+
+	dprintk(SAA716x_DEBUG, 1, "MSI STAT L=<%02x> H=<%02x>, CTL L=<%02x> H=<%02x>",
+		stat_l, stat_h, mask_l, mask_h);
+
+	if (!((stat_l & mask_l) || (stat_h & mask_h)))
+		return IRQ_NONE;
+
+	if (stat_l)
+		SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_L, stat_l);
+
+	if (stat_h)
+		SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_H, stat_h);
+
+	if (stat_h & MSI_INT_EXTINT_4)
+		saa716x_input_irq_handler(saa716x);
+
+	if (stat_l) {
+		if (stat_l & MSI_INT_TAGACK_FGPI_1) {
+
+			fgpiStatus = SAA716x_EPRD(FGPI1, INT_STATUS);
+			activeBuffer = (SAA716x_EPRD(BAM, BAM_FGPI1_DMA_BUF_MODE) >> 3) & 0x7;
+			dprintk(SAA716x_DEBUG, 1, "fgpiStatus = %04X, buffer = %d",
+				fgpiStatus, activeBuffer);
+			if (activeBuffer > 0)
+				activeBuffer -= 1;
+			else
+				activeBuffer = 7;
+			if (saa716x->fgpi[1].dma_buf[activeBuffer].mem_virt) {
+				u8 * data = (u8 *)saa716x->fgpi[1].dma_buf[activeBuffer].mem_virt;
+				dprintk(SAA716x_DEBUG, 1, "%02X%02X%02X%02X",
+					data[0], data[1], data[2], data[3]);
+				dvb_dmx_swfilter_packets(&saa716x->saa716x_adap[0].demux, data, 348);
+			}
+			if (fgpiStatus) {
+				SAA716x_EPWR(FGPI1, INT_CLR_STATUS, fgpiStatus);
+			}
+		}
+	}
+
+	saa716x_msi_event(saa716x, stat_l, stat_h);
+
+	return IRQ_HANDLED;
+}
+
+static int load_config_skystar2(struct saa716x_dev *saa716x)
+{
+	int ret = 0;
+
+	return ret;
+}
+
 
 static irqreturn_t saa716x_tbs6925_pci_irq(int irq, void *dev_id)
 {
@@ -1707,7 +1777,9 @@ static struct saa716x_config saa716x_tbs6220_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6280 "TurboSight TBS 6280"
@@ -1797,7 +1869,198 @@ static struct saa716x_config saa716x_tbs6280_config = {
 			/* adapter 1 */
 			.ts_port = 3
 		},
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
+};
+
+#define SAA716x_MODEL_SKYSTAR2_EXPRESS_HD	"SkyStar 2 eXpress HD"
+#define SAA716x_DEV_SKYSTAR2_EXPRESS_HD		"DVB-S/S2"
+
+static struct stv090x_config skystar2_stv090x_config = {
+	.device			= STV0903,
+	.demod_mode		= STV090x_SINGLE,
+	.clk_mode		= STV090x_CLK_EXT,
+
+	.xtal			= 8000000,
+	.address		= 0x68,
+
+	.ts1_mode		= STV090x_TSMODE_DVBCI,
+	.ts2_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
+
+	.repeater_level		= STV090x_RPTLEVEL_16,
+
+	.tuner_init		= NULL,
+	.tuner_sleep		= NULL,
+	.tuner_set_mode		= NULL,
+	.tuner_set_frequency	= NULL,
+	.tuner_get_frequency	= NULL,
+	.tuner_set_bandwidth	= NULL,
+	.tuner_get_bandwidth	= NULL,
+	.tuner_set_bbgain	= NULL,
+	.tuner_get_bbgain	= NULL,
+	.tuner_set_refclk	= NULL,
+	.tuner_get_status	= NULL,
+};
+
+static int skystar2_set_voltage(struct dvb_frontend *fe,
+				enum fe_sec_voltage voltage)
+{
+	int err;
+	u8 en = 0;
+	u8 sel = 0;
+
+	switch (voltage) {
+	case SEC_VOLTAGE_OFF:
+		en = 0;
+		break;
+
+	case SEC_VOLTAGE_13:
+		en = 1;
+		sel = 0;
+		break;
+
+	case SEC_VOLTAGE_18:
+		en = 1;
+		sel = 1;
+		break;
+
+	default:
+		break;
 	}
+
+	err = stv090x_set_gpio(fe, 2, 0, en, 0);
+	if (err < 0)
+		goto exit;
+	err = stv090x_set_gpio(fe, 3, 0, sel, 0);
+	if (err < 0)
+		goto exit;
+
+	return 0;
+exit:
+	return err;
+}
+
+static int skystar2_voltage_boost(struct dvb_frontend *fe, long arg)
+{
+	int err;
+	u8 value;
+
+	if (arg)
+		value = 1;
+	else
+		value = 0;
+
+	err = stv090x_set_gpio(fe, 4, 0, value, 0);
+	if (err < 0)
+		goto exit;
+
+	return 0;
+exit:
+	return err;
+}
+
+static struct stv6110x_config skystar2_stv6110x_config = {
+	.addr			= 0x60,
+	.refclk			= 16000000,
+	.clk_div		= 2,
+};
+
+static int skystar2_express_hd_frontend_attach(struct saa716x_adapter *adapter,
+					       int count)
+{
+	struct saa716x_dev *saa716x = adapter->saa716x;
+	struct saa716x_i2c *i2c = &saa716x->i2c[SAA716x_I2C_BUS_A];
+	struct stv6110x_devctl *ctl;
+
+	if (count < saa716x->config->adapters) {
+		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) SAA716x frontend Init",
+			count);
+		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) Device ID=%02x", count,
+			saa716x->pdev->subsystem_device);
+
+		saa716x_gpio_set_output(saa716x, 26);
+		msleep(1);
+
+		/* Reset the demodulator */
+		saa716x_gpio_write(saa716x, 26, 1);
+		msleep(10);
+		saa716x_gpio_write(saa716x, 26, 0);
+		msleep(50);
+		saa716x_gpio_write(saa716x, 26, 1);
+		msleep(100);
+
+		adapter->fe = dvb_attach(stv090x_attach,
+					 &skystar2_stv090x_config,
+					 &i2c->i2c_adapter,
+					 STV090x_DEMODULATOR_0);
+
+		if (adapter->fe) {
+			dprintk(SAA716x_NOTICE, 1, "found STV0903 @0x%02x",
+				skystar2_stv090x_config.address);
+		} else {
+			goto exit;
+		}
+
+		adapter->fe->ops.set_voltage = skystar2_set_voltage;
+		adapter->fe->ops.enable_high_lnb_voltage = skystar2_voltage_boost;
+
+		ctl = dvb_attach(stv6110x_attach,
+				 adapter->fe,
+				 &skystar2_stv6110x_config,
+				 &i2c->i2c_adapter);
+
+		if (ctl) {
+			dprintk(SAA716x_NOTICE, 1, "found STV6110(A) @0x%02x",
+				skystar2_stv6110x_config.addr);
+
+			skystar2_stv090x_config.tuner_init	    = ctl->tuner_init;
+			skystar2_stv090x_config.tuner_sleep	    = ctl->tuner_sleep;
+			skystar2_stv090x_config.tuner_set_mode	    = ctl->tuner_set_mode;
+			skystar2_stv090x_config.tuner_set_frequency = ctl->tuner_set_frequency;
+			skystar2_stv090x_config.tuner_get_frequency = ctl->tuner_get_frequency;
+			skystar2_stv090x_config.tuner_set_bandwidth = ctl->tuner_set_bandwidth;
+			skystar2_stv090x_config.tuner_get_bandwidth = ctl->tuner_get_bandwidth;
+			skystar2_stv090x_config.tuner_set_bbgain    = ctl->tuner_set_bbgain;
+			skystar2_stv090x_config.tuner_get_bbgain    = ctl->tuner_get_bbgain;
+			skystar2_stv090x_config.tuner_set_refclk    = ctl->tuner_set_refclk;
+			skystar2_stv090x_config.tuner_get_status    = ctl->tuner_get_status;
+
+			/* call the init function once to initialize
+			   tuner's clock output divider and demod's
+			   master clock */
+			if (adapter->fe->ops.init)
+				adapter->fe->ops.init(adapter->fe);
+		} else {
+			goto exit;
+		}
+
+		dprintk(SAA716x_ERROR, 1, "Done!");
+		return 0;
+	}
+exit:
+	dprintk(SAA716x_ERROR, 1, "Frontend attach failed");
+	return -ENODEV;
+}
+
+static struct saa716x_config skystar2_express_hd_config = {
+	.model_name		= SAA716x_MODEL_SKYSTAR2_EXPRESS_HD,
+	.dev_type		= SAA716x_DEV_SKYSTAR2_EXPRESS_HD,
+	.boot_mode		= SAA716x_EXT_BOOT,
+	.load_config		= &load_config_skystar2,
+	.adapters		= 1,
+	.frontend_attach	= skystar2_express_hd_frontend_attach,
+	.irq_handler		= saa716x_skystar2_pci_irq,
+	.i2c_rate[0]		= SAA716x_I2C_RATE_100,
+	.i2c_rate[1]            = SAA716x_I2C_RATE_100,
+	.adap_config		= {
+		{
+			/* Adapter 0 */
+			.ts_port = 1, /* using FGPI 1 */
+		}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TECHNISAT_USB2
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6925 "TurboSight TBS 6925"
@@ -1922,7 +2185,9 @@ static struct saa716x_config saa716x_tbs6925_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6984 "TurboSight TBS 6984"
@@ -2027,8 +2292,10 @@ static struct saa716x_config saa716x_tbs6984_config = {
 		{
 			/* adapter 3 */
 			.ts_port = 1
-		}
-	}
+		},
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6992 "TurboSight TBS 6992"
@@ -2134,7 +2401,9 @@ static struct saa716x_config saa716x_tbs6992_config = {
 			/* adapter 1 */
 			.ts_port = 1
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6922 "TurboSight TBS 6922"
@@ -2202,7 +2471,9 @@ static struct saa716x_config saa716x_tbs6922_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 
@@ -2296,7 +2567,9 @@ static struct saa716x_config saa716x_tbs6928_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6928SE "TurboSight TBS 6928SE"
@@ -2389,7 +2662,9 @@ static struct saa716x_config saa716x_tbs6928se_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6284 "TurboSight TBS 6284"
@@ -2538,7 +2813,9 @@ static struct saa716x_config saa716x_tbs6284_config = {
 			/* adapter 3 */
 			.ts_port = 0
 		}
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6982 "TurboSight TBS 6982"
@@ -2618,7 +2895,9 @@ static struct saa716x_config saa716x_tbs6982_config = {
 			/* adapter 1 */
 			.ts_port = 1
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6991 "TurboSight TBS 6991"
@@ -2716,7 +2995,9 @@ static struct saa716x_config saa716x_tbs6991_config = {
 			/* adapter 1 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6618 "TurboSight TBS 6618"
@@ -2795,7 +3076,9 @@ static struct saa716x_config saa716x_tbs6618_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6680 "TurboSight TBS 6680"
@@ -2878,7 +3161,9 @@ static struct saa716x_config saa716x_tbs6680_config = {
 			/* adapter 1 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6985 "TurboSight TBS 6985"
@@ -2982,7 +3267,9 @@ static struct saa716x_config saa716x_tbs6985_config = {
 			/* adapter 3 */
 			.ts_port = 1
 		}
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6926 "TurboSight TBS 6926"
@@ -3078,7 +3365,9 @@ static struct saa716x_config saa716x_tbs6926_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6923 "TurboSight TBS 6923"
@@ -3146,7 +3435,9 @@ static struct saa716x_config saa716x_tbs6923_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 #define SAA716x_MODEL_TURBOSIGHT_TBS6925VE "TurboSight TBS 6925VE"
@@ -3237,13 +3528,16 @@ static struct saa716x_config saa716x_tbs6925ve_config = {
 			/* adapter 0 */
 			.ts_port = 3
 		},
-	}
+	},
+	.rc_gpio_in = 4,
+	.rc_map_name = RC_MAP_TBS_NEC
 };
 
 static struct pci_device_id saa716x_tbs_pci_table[] = {
 
 	MAKE_ENTRY(TURBOSIGHT_TBS6220_SUBVENDOR, TURBOSIGHT_TBS6220_SUBDEVICE, SAA7160, &saa716x_tbs6220_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6280_SUBVENDOR, TURBOSIGHT_TBS6280_SUBDEVICE, SAA7160, &saa716x_tbs6280_config),
+	MAKE_ENTRY(TECHNISAT, SKYSTAR2_EXPRESS_HD, SAA7160, &skystar2_express_hd_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6925_SUBVENDOR, TURBOSIGHT_TBS6925_SUBDEVICE, SAA7160, &saa716x_tbs6925_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6984_SUBVENDOR, TURBOSIGHT_TBS6984_SUBDEVICE, SAA7160, &saa716x_tbs6984_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6992_SUBVENDOR, TURBOSIGHT_TBS6992_SUBDEVICE, SAA7160, &saa716x_tbs6992_config),

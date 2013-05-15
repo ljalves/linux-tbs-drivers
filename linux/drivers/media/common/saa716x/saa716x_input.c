@@ -96,7 +96,7 @@ static void saa716x_input_ir_close(struct rc_dev *rc)
 		saa716x_input_ir_stop(saa716x);
 }
 
-int saa716x_input_init(struct saa716x_dev *saa716x)
+int saa716x_input_init(struct saa716x_dev *saa716x, int gpio_in, const char *map_name)
 {
 	struct saa716x_ir *ir;
 	struct rc_dev *rc;
@@ -140,8 +140,8 @@ int saa716x_input_init(struct saa716x_dev *saa716x)
 	rc->driver_name = MODULE_NAME;
 
 	/* hardware specific */
-	rc->map_name = RC_MAP_TBS_NEC;
-	ir->mask_keyevent  = 1 << 4;
+	rc->map_name = map_name;
+	ir->mask_keyevent  = 1 << gpio_in;
 
 	saa716x->ir = ir;
 	ret = rc_register_device(rc);

@@ -106,6 +106,9 @@ struct saa716x_config {
 
 	struct saa716x_adap_config	adap_config[4];
 	enum saa716x_i2c_rate		i2c_rate[2];
+
+	int				rc_gpio_in;
+	const char			*rc_map_name;
 };
 
 struct saa716x_adapter {
