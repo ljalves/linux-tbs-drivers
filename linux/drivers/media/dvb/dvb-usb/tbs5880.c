@@ -11,8 +11,8 @@
 
 #include <linux/version.h>
 #include "tbs5880.h"
-#include "tbs5880fe.h"
-#include "tbs5880ctrl.h"
+#include "tda18212.h"
+#include "cxd2820r.h"
 
 #include "dvb_ca_en50221.h"
 
@@ -451,12 +451,6 @@ static u32 tbs5880_i2c_func(struct i2c_adapter *adapter)
 	return I2C_FUNC_I2C;
 }
 
-static struct tbs5880fe_config tbs5880fe_config = {
-	.tbs5880fe_address = 0x6c,
-
-	.tbs5880_ctrl = tbs5880ctrl,
-};
-
 static struct i2c_algorithm tbs5880_i2c_algo = {
 	.master_xfer = tbs5880_i2c_transfer,
 	.functionality = tbs5880_i2c_func,
@@ -495,6 +489,40 @@ static int tbs5880_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 
 static struct dvb_usb_device_properties tbs5880_properties;
 
+static struct cxd2820r_config cxd2820r_config = {
+	.i2c_address = 0x6c, /* (0xd8 >> 1) */
+	.ts_mode = 0x08,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+};
+
+static struct tda18212_config tda18212_config = {
+	.i2c_address = 0x60 /* (0xc0 >> 1) */,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+};
+
+static int tbs5880_tuner_attach(struct dvb_usb_adapter *adap)
+{
+	if (!dvb_attach(tda18212_attach, adap->fe[0], &adap->dev->i2c_adap,
+		&tda18212_config))
+		return -EIO;
+
+	info("Attached TDA18212!\n");
+
+	return 0;
+}
+
 static int tbs5880_frontend_attach(struct dvb_usb_adapter *d)
 {
 	struct dvb_usb_device *u = d->dev;
@@ -503,11 +531,12 @@ static int tbs5880_frontend_attach(struct dvb_usb_adapter *d)
 
 	mutex_init(&state->ca_mutex);
 
-	if (tbs5880_properties.adapter->tuner_attach == NULL) {
-		d->fe[0] = dvb_attach(tbs5880fe_attach, &tbs5880fe_config,
-			&d->dev->i2c_adap);
+	if (tbs5880_properties.adapter->tuner_attach == &tbs5880_tuner_attach) {
+		d->fe[0] = dvb_attach(cxd2820r_attach, &cxd2820r_config,
+			&d->dev->i2c_adap,NULL);
+
 		if (d->fe[0] != NULL) {
-			info("Attached TBS5880FE!\n");
+			info("Attached CXD2820r!\n");
 
 			buf[0] = 7;
 			buf[1] = 1;
@@ -696,7 +725,7 @@ static struct dvb_usb_device_properties tbs5880_properties = {
 		{
 			.frontend_attach = tbs5880_frontend_attach,
 			.streaming_ctrl = NULL,
-			.tuner_attach = NULL,
+			.tuner_attach = tbs5880_tuner_attach,
 			.stream = {
 				.type = USB_BULK,
 				.count = 8,
