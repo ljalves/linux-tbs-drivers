@@ -1,0 +1,20 @@
+I.0 install the TBS 5880 USB firmware file "dvb-usb-tbsqbox-id5880.fw" /lib/firmware/:
+
+mv dvb-usb-tbsqbox-id5880.fw /lib/firmware/
+
+II. refer to README_TBS5921 for further installation instructions
+
+III. in case you want to use 5880 for DVBC then before step I.4 (and after I.3) from the 
+steps in II. run:
+
+- for x86 kernel 3.x (x86 32 bit installations of kernel 3.x):
+
+# ./v4l/tbs-dvbc-x86_r3.sh
+
+- for x86 kernel 2.6.x (x86 32 bit installations of kernel 2.6.x):
+
+# ./v4l/tbs-dvbc-x86.sh
+
+- for any x86_64 kernel (x86 64 bit installations of Linux):
+
+# ./v4l/tbs-dvbc-x86_64.sh

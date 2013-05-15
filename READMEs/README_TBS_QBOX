@@ -1,0 +1,136 @@
+HOWTO
+
+Most of the steps require root access to the Ubuntu system and basic knowledge of Linux system. Create directory, for example /root/tbs and copy the following file to it:
+
+- dvb-usb-tbsqbox-id5910.fw (QBOX USB firmware file)
+- linux-tbs-sources.tar.bz2 (source code of S2API Linix drivers for TBS products)
+- szap-s2.tar.bz2 (szap tool compatible with new DVB-S2 aware S2 API for Linux)
+- scan-s2.tar.bz2 (scan tool compatible with new DVB-S2 aware S2 API for Linux)
+- astra_szap-s2.conf (example configuration file for szap-s2 with only few transponders from Astra 19.2E satellite)
+- astra_scan-s2.conf (example configuration file for scan-s2 with only few transponders from Astra 19.2E satellite)
+
+from now on all step are executed in /root/tbs, i.e. "cd /root/tbs" unless it's stated otherwise.
+
+I. install the QBOX USB firmware file "dvb-usb-tbsqbox-id5910.fw" to /lib/firmware/:
+
+mv dvb-usb-tbsqbox-id5910.fw /lib/firmware/
+
+II. build, install and load S2API Linix drivers for TBS QBOX USB box
+
+II.0 (optional in case packages aren't already installed) install prerequisite packages using Ubuntu package manager:
+
+apt-get update
+apt-get install linux-headers-`uname -r`
+apt-get install linux-kernel-devel
+
+II.1 extract linux-tbs-sources.tar.bz2 archive:
+
+tar xjvf linux-tbs-sources.tar.bz2
+
+II.2 go to driver source code directory:
+
+cd linux-tbs-sources/
+
+II.3 build and install the driver:
+II.4 make && make install
+
+II.5 reboot in order to load the newly installed driver:
+
+shutdown -r now
+
+II.6 after reboot check that the newly installed driver is loaded correctly:
+
+dmesg | grep QBOX
+
+if everything is OK, the output from the above command should be similar to:
+
+dvb-usb: TBS QBOX DVBS USB2.0 successfully deinitialized and disconnected.
+dvb-usb: found a 'TBS QBOX DVBS USB2.0' in cold state, will try to load a firmware
+tbsqbox: start downloading TBSQBOX firmware
+dvb-usb: found a 'TBS QBOX DVBS USB2.0' in warm state.
+DVB: registering new adapter (TBS QBOX DVBS USB2.0)
+dvb-usb: TBS QBOX DVBS USB2.0 successfully initialized and connected.
+
+III. here are some basic instructions how to test locking to transponder with "szap-s2":
+
+III.1 extract "szap-s2.tar.bz2" archive:
+
+# tar xjvf szap-s2.tar.bz2
+
+III.2 go to szap-s2 source code directory:
+
+# cd szap-s2
+
+III.3 build szap-s2:
+
+# make
+
+III.4 szap-s2 uses configuration files (see configuration file "astra_szap-s2.conf" for example) - they are simple text files and each line of them contains information about a channel, for example:
+
+BBC:11597:v:0:22000:163:92:10050
+
+this means:
+
+- channel name is BBC, you can choose whatever you want for channel name, it's just a text string
+
+- channel frequency is 11597MHz
+
+- transponder polarization is V(ertical)
+
+- 0: use first LNB (if you have only one LNB, it's always 0, if you have DiSEqC switch and several LNBs connected to that switch it could be number greater than 0 and showing which LNB to use, i.e. to which DiSEqC switch port desired LNB is connected)
+
+- 22000: symbol rate
+
+- 163: Video PID (VPID)
+
+- 92: Audio PID
+
+- 10050: Service ID (SID)
+
+the example is for "BBC World" channel on Astra 19.2E satellite. you can find all those numbers for example here:
+
+http://www.lyngsat.com/astra19.html
+
+III.5 write your szap-s2 configuration files (or create one using S2API compatible version of the "scan" tool)
+
+III.6 use szap-s2 examples:
+
+- to lock to DVB-S transponder: ./szap-s2 -c astra_szap-s2.conf -p -r -S 0 "BBC"
+
+- to lock to DVB-S2: ./szap-s2 -c sample.conf -p -r -S 1 -M 5 -C 23 "CHAN_NAME"
+
+where "-S 1" is DVB-S2, "-M 5" is 8PSK modulation, "-C 23" is FEC 2/3
+
+IV. here are some basic instructions how to scan transponder with "scan-s2":
+
+IV.1 extract "scan-s2.tar.bz2" archive:
+
+# tar xjvf scan-s2.tar.bz2
+
+IV.2 go to scan-s2 source code directory:
+
+# cd scan-s2
+
+IV.3 build scan-s2:
+
+# make
+
+IV.4 scan-s2 uses configuration files (see configuration file "astra_scan-s2.conf" for example) - they are simple text files and each line of them contains information about a transponder, for example:
+
+S1 11778000 V 27500000 3/4 35 QPSK
+S2 11362000 H 22000000 2/3 35 8PSK
+
+where:
+
+- "S1" or "S2" indicates the delivery system, i.e. either DVB-S or DVB-S2
+- second parameter is the frequency, in our example respectively 11778000 kHz or 11362000 kHz
+- "V" or "H" indicates that the polarization: V(ertical) or H(orizontal)
+- 5th parameter is the FEC value, in our example respectively 3/4 or 2/3
+- the next parameter is the Roll-off factor, "35" in our example
+- and the last parameter is the modulation, in our example respectively QPSK or 8PSK
+
+the Roll-off factor and the modulation are mandatory for DVB-S2 cards and without them the result is just unpredictable, most probably - no lock. the reason for that is that DVB-S2 supports several modulation like QPSK, 8PSK, etc and 3 Roll-off factors : 0.20, 0.25, 0.35 (respectively 20, 25, 35 in the configuration file). DVB-S supports only one Roll-off factor - 0.35 and so for DVB-S transponders Roll-off factor is always 35 in the configuration file
+
+IV.5 write your scan-s2 configuration files
+
+IV.6 use scan-s2 to scan a tranposnder

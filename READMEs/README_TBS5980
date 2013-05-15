@@ -1,0 +1,163 @@
+README file for TurboSight TBS 5980 DVB-S/S2 with CI USB box Linux drivers
+
+NOTE: this document assumes that all prerequisite packages like kerner headers
+and build tools are already installed in your Linux system.
+
+Most of the steps require root access to and basic knowledge of Linux system.
+
+Create directory, for example /root/tbs and copy the following file to it:
+
+- linux-tbs-drivers.tar.bz2 (S2API Linix driver for TurboSight TBS 5980)
+- dvb-usb-tbsqbox-id5980.fw (QBOX CI USB firmware file)
+- szap-s2.tar.bz2 (szap tool compatible with new DVB-S2 aware S2 API for Linux)
+- scan-s2.tar.bz2 (scan tool compatible with new DVB-S2 aware S2 API for Linux)
+- astra_szap-s2.conf (example configuration file for szap-s2)
+- astra_scan-s2.conf (example configuration file for scan-s2)
+
+I.0 install the QBOX CI USB firmware file "dvb-usb-tbsqbox-id5980.fw" /lib/firmware/:
+
+mv dvb-usb-tbsqbox-id5980.fw /lib/firmware/
+
+I.1 extract linux-tbs-drivers.tar.bz2 archive:
+
+# tar xjvf linux-tbs-drivers.tar.bz2
+
+I.2 go to driver package directory:
+
+# cd linux-tbs-drivers
+
+I.3 build and install the driver:
+
+# make && make install
+
+I.4 reboot in order to load the newly installed driver:
+
+# shutdown -r now
+
+I.5 after reboot check that the newly installed driver is loaded correctly:
+
+# dmesg | grep Qbox
+
+if everything is OK, the output from the above command should be similar to:
+
+dvb-usb: found a 'TBS Qbox DVBS2 CI USB2.0' in cold state, will try to load a firmware
+dvb-usb: found a 'TBS Qbox DVBS2 CI USB2.0' in warm state.
+DVB: registering new adapter (TBS Qbox DVBS2 CI USB2.0)
+dvb-usb: TBS Qbox DVBS2 CI USB2.0 successfully initialized and connected.
+
+II. some basic instructions how to test locking to transponder with "szap-s2":
+
+II.1 extract "szap-s2.tar.bz2" archive:
+
+# tar xjvf szap-s2.tar.bz2
+
+II.2 go to szap-s2 source code directory:
+
+# cd szap-s2
+
+II.3 build szap-s2:
+
+# make
+
+II.4 szap-s2 uses configuration files (see configuration file "astra_szap-s2.conf" 
+for example) - they are simple text files and each line of them contains information 
+about a channel, for example:
+
+BBC:11597:v:0:22000:163:92:10050
+
+this means:
+
+- channel name is BBC, you can choose whatever you want for channel name, it's just 
+a text string
+
+- channel frequency is 11597 MHz
+
+- transponder polarization is V(ertical)
+
+- 0: use first LNB (if you have only one LNB, it's always 0, if you have DiSEqC switch 
+and several LNBs connected to that switch it could be number greater than 0 and is showing 
+which LNB to use, i.e. to which DiSEqC switch port desired LNB is connected)
+
+- 22000: symbol rate
+
+- 163: Video PID (VPID)
+
+- 92: Audio PID
+
+- 10050: Service ID (SID)
+
+the example is for "BBC World" channel on Astra 19.2E satellite. 
+you can find all those numbers for example here:
+
+http://www.lyngsat.com/astra19.html
+
+II.5 write your szap-s2 configuration files (or create one using S2API compatible 
+version of the "scan" tool)
+
+II.6 use szap-s2 examples:
+
+- to lock to DVB-S transponder: ./szap-s2 -c astra_szap-s2.conf -p -r -S 0 "BBC"
+
+- to lock to DVB-S2: ./szap-s2 -c sample.conf -p -r -S 1 -M 5 -C 23 "CHAN_NAME"
+
+where "-S 1" is DVB-S2, "-M 5" is 8PSK modulation, "-C 23" is FEC 2/3
+
+III. some basic instructions how to scan transponder with "scan-s2":
+
+III.1 extract "scan-s2.tar.bz2" archive:
+
+# tar xjvf scan-s2.tar.bz2
+
+III.2 go to scan-s2 source code directory:
+
+# cd scan-s2
+
+III.3 build scan-s2:
+
+# make
+
+III.4 scan-s2 uses configuration files (see configuration file "astra_scan-s2.conf" 
+for example) - they are simple text files and each line of them contains information 
+about a transponder, for example:
+
+S1 11778000 V 27500000 3/4 35 QPSK
+S2 11362000 H 22000000 2/3 35 8PSK
+
+where:
+
+- "S1" or "S2" indicates the delivery system, i.e. either DVB-S or DVB-S2
+- second parameter is the frequency, in our example respectively 11778000 kHz or 11362000 kHz
+- "V" or "H" indicates that the polarization: V(ertical) or H(orizontal)
+- 5th parameter is the FEC value, in our example respectively 3/4 or 2/3
+- the next parameter is the Roll-off factor, "35" in our example
+- and the last parameter is the modulation, in our example respectively QPSK or 8PSK
+
+DVB-S supports only one Roll-off factor (0.35) and only one modulation (QPSK) and so 
+for DVB-S transponders Roll-off factor is always 35 and modulation is always QPSK in
+the configuration file.
+
+DVB-S2 supports several modulation like QPSK and 8PSK and 3 Roll-off factors: 0.20, 0.25, 0.35
+(respectively 20, 25, 35 in the configuration file). TBS 5980 should be able to work even if 
+AUTO is specified for Roll-off factor, but that will result in slower lock. it's always 
+recommended to use the correct Roll-off value if you know it.
+
+III.5 write your scan-s2 configuration files
+
+III.6 use scan-s2 to scan a tranposnder
+
+IV. some general notes about using TBS 5980 USB box in Linux:
+
+IV.1 TBS 5980 is single DVB-S/S2 tuner and there is no need to specify which frontend to use:
+
+- use frontend 0:
+# szap-s2 -a 0 -c astra_szap-s2.conf -p -r -S 0 "BBC"
+# scan-s2 -a 0 astra_scan-s2.conf
+
+IV.2 TBS 5980 driver uses the Linux EN50221 API to implement the CI support and so the CI slot
+should work with any DVB application with such support in Linux. 
+
+TBS 5980 CI support was extensively tested in DVBlast:
+
+http://www2.videolan.org/projects/dvblast.html
+
+due to huge demand from our customers for DVB hardware with CI slot that works with DVBlast.

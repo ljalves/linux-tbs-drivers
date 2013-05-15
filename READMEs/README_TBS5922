@@ -1,0 +1,5 @@
+I.0 install the TBS 5922 USB firmware file "dvb-usb-tbsqbox-id5922.fw" /lib/firmware/:
+
+mv dvb-usb-tbsqbox-id5922.fw /lib/firmware/
+
+II. refer to README_TBS5921 for further installation instructions

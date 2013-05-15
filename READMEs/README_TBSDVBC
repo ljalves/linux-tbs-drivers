@@ -1,0 +1,5 @@
+I.0 install the TBS DVBC USB Stick firmware file "dvb-usb-tbsqbox-dvbc.fw" /lib/firmware/:
+
+mv dvb-usb-tbsqbox-dvbc.fw /lib/firmware/
+
+II. refer to README_TBS5921 for further installation instructions

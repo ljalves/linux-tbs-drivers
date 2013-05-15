@@ -1,0 +1,22 @@
+TBS Linux FAQ
+
+Q1. after the drivers are installed there are error messages like:
+
+"disagrees about version of symbol..."
+
+and/or
+
+"Unknown symbol..."
+
+on 'dmesg' output and no DVB devices are created.
+
+A1: do the following:
+
+# sudo rm -rf /lib/modules/<kernel_version>/kernel/drivers/media/
+
+where "<kernel_version>" is replaced by the loaded kernel version
+and then reinstall the drivers with doing "make install".
+
+TBC
+
+EOF

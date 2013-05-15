@@ -1,0 +1,16 @@
+I. refer to README_TBS6981 for installation instructions
+
+II. in case you want to use 6220, 6280 or 6284 for DVBC then 
+before step I.4 (and after I.3) from the steps in I. run:
+
+- for x86 kernel 3.x (x86 32 bit installations of kernel 3.x):
+
+# ./v4l/tbs-dvbc-x86_r3.sh
+
+- for x86 kernel 2.6.x (x86 32 bit installations of kernel 2.6.x):
+
+# ./v4l/tbs-dvbc-x86.sh
+
+- for any x86_64 kernel (x86 64 bit installations of Linux):
+
+# ./v4l/tbs-dvbc-x86_64.sh
