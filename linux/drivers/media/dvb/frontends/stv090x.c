@@ -4691,23 +4691,26 @@ static int stv090x_setup(struct dvb_frontend *fe)
 	/* Stop Demod */
 	if (stv090x_write_reg(state, STV090x_P1_DMDISTATE, 0x5c) < 0)
 		goto err;
-	if (stv090x_write_reg(state, STV090x_P2_DMDISTATE, 0x5c) < 0)
-		goto err;
+	if (state->device == STV0900)
+		if (stv090x_write_reg(state, STV090x_P2_DMDISTATE, 0x5c) < 0)
+			goto err;
 
 	msleep(5);
 
 	/* Set No Tuner Mode */
 	if (stv090x_write_reg(state, STV090x_P1_TNRCFG, 0x6c) < 0)
 		goto err;
-	if (stv090x_write_reg(state, STV090x_P2_TNRCFG, 0x6c) < 0)
-		goto err;
+	if (state->device == STV0900)
+		if (stv090x_write_reg(state, STV090x_P2_TNRCFG, 0x6c) < 0)
+			goto err;
 
 	/* I2C repeater OFF */
 	STV090x_SETFIELD_Px(reg, ENARPT_LEVEL_FIELD, config->repeater_level);
 	if (stv090x_write_reg(state, STV090x_P1_I2CRPT, reg) < 0)
 		goto err;
-	if (stv090x_write_reg(state, STV090x_P2_I2CRPT, reg) < 0)
-		goto err;
+	if (state->device == STV0900)
+		if (stv090x_write_reg(state, STV090x_P2_I2CRPT, reg) < 0)
+			goto err;
 
 	if (stv090x_write_reg(state, STV090x_NCOARSE, 0x13) < 0) /* set PLL divider */
 		goto err;
