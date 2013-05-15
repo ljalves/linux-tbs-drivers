@@ -735,6 +735,15 @@ static void cxd2820r_release(struct dvb_frontend *fe)
 	return;
 }
 
+static int cxd2820r_i2c_gate_ctrl(struct dvb_frontend *fe, int enable)
+{
+	struct cxd2820r_priv *priv = fe->demodulator_priv;
+	dbg("%s: %d", __func__, enable);
+
+	/* Bit 0 of reg 0xdb in bank 0x00 controls I2C repeater */
+	return cxd2820r_wr_reg_mask(priv, 0xdb, enable ? 1 : 0, 0x1);
+}
+
 static u32 cxd2820r_tuner_i2c_func(struct i2c_adapter *adapter)
 {
 	return I2C_FUNC_I2C;
@@ -864,6 +873,9 @@ static struct dvb_frontend_ops cxd2820r_ops[2] = {
 		.info = {
 			.name = "Sony CXD2820R (DVB-T/T2)",
 			.type = FE_OFDM,
+			.frequency_min  =  48000000,
+			.frequency_max  = 864000000,
+			.frequency_stepsize = 1000,
 			.caps =
 				FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 |
 				FE_CAN_FEC_3_4 | FE_CAN_FEC_5_6 |
@@ -875,7 +887,7 @@ static struct dvb_frontend_ops cxd2820r_ops[2] = {
 				FE_CAN_GUARD_INTERVAL_AUTO |
 				FE_CAN_HIERARCHY_AUTO |
 				FE_CAN_MUTE_TS |
-				FE_CAN_2G_MODULATION
+				FE_CAN_2G_MODULATION | FE_CAN_MULTISTREAM
 		},
 
 		.release = cxd2820r_release,
@@ -883,6 +895,7 @@ static struct dvb_frontend_ops cxd2820r_ops[2] = {
 		.sleep = cxd2820r_sleep,
 
 		.get_tune_settings = cxd2820r_get_tune_settings,
+		.i2c_gate_ctrl = cxd2820r_i2c_gate_ctrl,
 
 		.get_frontend = cxd2820r_get_frontend,
 
@@ -900,6 +913,9 @@ static struct dvb_frontend_ops cxd2820r_ops[2] = {
 		.info = {
 			.name = "Sony CXD2820R (DVB-C)",
 			.type = FE_QAM,
+			.frequency_min  =  48000000,
+			.frequency_max  = 864000000,
+			.frequency_stepsize = 1000,
 			.caps =
 				FE_CAN_QAM_16 | FE_CAN_QAM_32 | FE_CAN_QAM_64 |
 				FE_CAN_QAM_128 | FE_CAN_QAM_256 |
@@ -911,6 +927,7 @@ static struct dvb_frontend_ops cxd2820r_ops[2] = {
 		.sleep = cxd2820r_sleep,
 
 		.get_tune_settings = cxd2820r_get_tune_settings,
+		.i2c_gate_ctrl = cxd2820r_i2c_gate_ctrl,
 
 		.set_frontend = cxd2820r_set_frontend,
 		.get_frontend = cxd2820r_get_frontend,

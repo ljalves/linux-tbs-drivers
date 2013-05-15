@@ -126,6 +126,9 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 		{ 0xb3, 0x20, 0x03 }, /* DVB-T 6 MHz */
 		{ 0xb3, 0x31, 0x01 }, /* DVB-T 7 MHz */
 		{ 0xb3, 0x22, 0x01 }, /* DVB-T 8 MHz */
+		{ 0xbc, 0x20, 0x03 }, /* DVB-T2 6 MHz */
+		{ 0xbc, 0x72, 0x03 }, /* DVB-T2 7 MHz */
+		{ 0xbc, 0x22, 0x01 }, /* DVB-T2 8 MHz */
 		{ 0x92, 0x53, 0x03 }, /* DVB-C */
 	};
 
@@ -155,9 +158,28 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 			goto error;
 		}
 		break;
+	case SYS_DVBT2:
+		switch (c->bandwidth_hz) {
+		case 6000000:
+			if_khz = priv->cfg->if_dvbt2_6;
+			i = 3;
+			break;
+		case 7000000:
+			if_khz = priv->cfg->if_dvbt2_7;
+			i = 4;
+			break;
+		case 8000000:
+			if_khz = priv->cfg->if_dvbt2_8;
+			i = 5;
+			break;
+		default:
+			ret = -EINVAL;
+			goto error;
+		}
+		break;
 	case SYS_DVBC_ANNEX_AC:
 		if_khz = priv->cfg->if_dvbc;
-		i = 3;
+		i = 6;
 		break;
 	default:
 		ret = -EINVAL;

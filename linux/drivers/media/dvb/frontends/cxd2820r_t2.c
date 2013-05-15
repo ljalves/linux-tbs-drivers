@@ -123,6 +123,22 @@ int cxd2820r_set_frontend_t2(struct dvb_frontend *fe,
 	buf[1] = ((if_ctl >>  8) & 0xff);
 	buf[2] = ((if_ctl >>  0) & 0xff);
 
+	/* PLP filtering */
+	if (c->dvbt2_plp_id < 0 || c->dvbt2_plp_id > 255) {
+		dbg("%s: Disable PLP filtering\n", __func__);
+		ret = cxd2820r_wr_reg(priv, 0x023ad , 0);
+		if (ret)
+			goto error;
+	} else {
+		dbg("%s: Enable PLP filtering = %d\n", __func__, c->dvbt2_plp_id);
+		ret = cxd2820r_wr_reg(priv, 0x023af , c->dvbt2_plp_id & 0xFF);
+		if (ret)
+			goto error;
+		ret = cxd2820r_wr_reg(priv, 0x023ad , 1);
+		if (ret)
+			goto error;
+	}
+
 	ret = cxd2820r_wr_regs(priv, 0x020b6, buf, 3);
 	if (ret)
 		goto error;
