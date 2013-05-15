@@ -1,5 +1,6 @@
 TARGETS = vicam/firmware.fw dabusb/firmware.fw dabusb/bitstream.bin ttusb-budget/dspbootcode.bin cpia2/stv0672_vp4.bin av7110/bootcode.bin \
-	dvb-fe-ds3000.fw dvb-fe-ds300x.fw dvb-fe-ds3103.fw dvb-usb-dw2101.fw dvb-usb-dw2102.fw dvb-usb-dw2104.fw dvb-usb-dw3101.fw \
+	v4l-cx23885-avcore-01.fw dvb-fe-cx24116.fw dvb-fe-ds3000.fw dvb-fe-ds300x.fw dvb-fe-ds3103.fw \
+	dvb-usb-dw2101.fw dvb-usb-dw2102.fw dvb-usb-dw2104.fw dvb-usb-dw3101.fw \
 	dvb-usb-tbsqbox-id2601.fw dvb-usb-tbsqbox-id5910.fw dvb-usb-tbsqbox-id5920.fw dvb-usb-tbsqbox-id5925.fw dvb-usb-tbsqbox-id5980.fw \
 	dvb-usb-tbsqbox-id5921.fw dvb-usb-tbsqbox-id5922.fw dvb-usb-tbsqbox-id5928.fw \
 	dvb-usb-tbsqbox-dvbc.fw dvb-usb-tbsqbox-id5680.fw dvb-usb-tbsqbox-id5880.fw \
