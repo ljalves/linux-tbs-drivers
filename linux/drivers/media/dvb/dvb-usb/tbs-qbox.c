@@ -168,8 +168,11 @@ static struct i2c_algorithm tbsqboxs1_i2c_algo = {
 
 static int tbsqboxs1_earda_tuner_attach(struct dvb_usb_adapter *adap)
 {
-	dvb_attach(stb6000_attach, adap->fe[0], 0x61,
-		&adap->dev->i2c_adap);
+	if (!dvb_attach(stb6000_attach, adap->fe[0], 0x61,
+		&adap->dev->i2c_adap))
+		return -EIO;
+
+	info("Attached stb6100!\n");
 
 	return 0;
 }
