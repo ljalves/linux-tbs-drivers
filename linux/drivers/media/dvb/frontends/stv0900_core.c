@@ -1574,6 +1574,37 @@ static int stv0900_status(struct stv0900_internal *intp,
 	return locked;
 }
 
+static int stv0900_set_pls(struct stv0900_internal *intp,
+				enum fe_stv0900_demod_num demod, u8 pls_mode, u32 pls_code)
+{
+	enum fe_stv0900_error error = STV0900_NO_ERROR;
+
+	dprintk("Set PLS code %d (mode %d)", pls_code, pls_mode);
+	stv0900_write_reg(intp, PLROOT2, (pls_mode<<2) | (pls_code>>16));
+	stv0900_write_reg(intp, PLROOT1, pls_code>>8);
+	stv0900_write_reg(intp, PLROOT0, pls_code);
+
+	return error;
+}
+
+static int stv0900_set_mis(struct stv0900_internal *intp,
+				enum fe_stv0900_demod_num demod, int mis)
+{
+	enum fe_stv0900_error error = STV0900_NO_ERROR;
+
+	if (mis == NO_STREAM_ID_FILTER) {
+		dprintk("Disable MIS filtering\n");
+		stv0900_write_bits(intp, FILTER_EN, 0);
+	} else {
+		dprintk("Enable MIS filtering - %d\n", mis);
+		stv0900_write_bits(intp, FILTER_EN, 1);
+		stv0900_write_reg(intp, ISIENTRY, mis);
+		stv0900_write_reg(intp, ISIBITENA, 0xff);
+	}
+
+	return error;
+}
+
 static enum dvbfe_search stv0900_search(struct dvb_frontend *fe,
 					struct dvb_frontend_parameters *params)
 {
@@ -1594,6 +1625,9 @@ static enum dvbfe_search stv0900_search(struct dvb_frontend *fe,
 
 	if (state->config->set_ts_params)
 		state->config->set_ts_params(fe, 0);
+
+	stv0900_set_pls(intp, demod, (c->dvbt2_plp_id>>24) & 0x3, (c->dvbt2_plp_id>>8) & 0x3FFFF);
+	stv0900_set_mis(intp, demod, c->dvbt2_plp_id);
 
 	p_result.locked = FALSE;
 	p_search.path = demod;
@@ -1961,6 +1995,9 @@ struct dvb_frontend *stv0900_attach(const struct stv0900_config *config,
 
 		if (err_stv0900)
 			goto error;
+
+		if (state->internal->chip_id >= 0x30)
+			state->frontend.ops.info.caps |= FE_CAN_MULTISTREAM;
 
 		break;
 	default:

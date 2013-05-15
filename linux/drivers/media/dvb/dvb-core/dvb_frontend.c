@@ -891,6 +891,7 @@ static int dvb_frontend_clear_cache(struct dvb_frontend *fe)
 		c->layer[i].interleaving = -1;
 		c->layer[i].segment_count = -1;
 	}
+	c->isdbs_ts_id = c->dvbt2_plp_id = -1;
 
 	return 0;
 }
@@ -1488,10 +1489,10 @@ static int dtv_property_process_set(struct dvb_frontend *fe,
 		c->layer[2].interleaving = tvp->u.data;
 		break;
 	case DTV_ISDBS_TS_ID:
-		c->isdbs_ts_id = tvp->u.data;
+		c->isdbs_ts_id = c->dvbt2_plp_id = tvp->u.data;
 		break;
 	case DTV_DVBT2_PLP_ID:
-		c->dvbt2_plp_id = tvp->u.data;
+		c->dvbt2_plp_id = c->isdbs_ts_id = tvp->u.data;
 		break;
 	default:
 		return -EINVAL;
