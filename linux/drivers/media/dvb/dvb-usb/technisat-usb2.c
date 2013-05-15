@@ -678,6 +678,8 @@ static struct usb_device_id technisat_usb2_id_table[] = {
 	{ 0 }		/* Terminating entry */
 };
 
+MODULE_DEVICE_TABLE(usb, technisat_usb2_id_table);
+
 /* device description */
 static struct dvb_usb_device_properties technisat_usb2_devices = {
 	.caps              = DVB_USB_IS_AN_I2C_ADAPTER,
