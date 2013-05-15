@@ -16,7 +16,6 @@
 #include "stv090x.h"
 #include "stb6100.h"
 #include "stb6100_cfg.h"
-#include "tbs5925fe_ctrl.h"
 
 #ifndef USB_PID_TBS5925
 #define USB_PID_TBS5925 0x5925
@@ -27,6 +26,7 @@
 
 /* on my own*/
 #define TBS5925_RC_QUERY (0x1a00)
+#define TBS5925_VOLTAGE_CTRL (0x1800)
 
 struct tbs5925_state {
 	u32 last_key_pressed;
@@ -128,6 +128,11 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			msleep(3);
 			//info("TBS5925_RC_QUERY %x %x %x %x\n",buf6[0],buf6[1],buf6[2],buf6[3]);
 			break;
+		case (TBS5925_VOLTAGE_CTRL):
+			buf6[0] = 3;
+			buf6[1] = msg[0].buf[0];
+			tbs5925_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBS5925_WRITE_MSG);
 			
 			break;
 		}
@@ -168,15 +173,6 @@ static struct stb6100_config stb6100_config = {
 	.refclock       = 27000000,
 };
 
-static struct tbs5925fe_ctrl_config tbs5925fe_config[1] = { 
-	{
-	.tbs5925fe_ctrl_address = 0x08,
-
-	.tbs5925fe_ctrl1 = tbs5925ctrl1,
-	.tbs5925fe_ctrl2 = tbs5925ctrl2,
-	}
-};
-
 static struct i2c_algorithm tbs5925_i2c_algo = {
 	.master_xfer = tbs5925_i2c_transfer,
 	.functionality = tbs5925_i2c_func,
@@ -184,8 +180,11 @@ static struct i2c_algorithm tbs5925_i2c_algo = {
 
 static int tbs5925_tuner_attach(struct dvb_usb_adapter *adap)
 {
-	dvb_attach(stb6100_attach, adap->fe[0], &stb6100_config,
-		&adap->dev->i2c_adap);
+	if (!dvb_attach(stb6100_attach, adap->fe[0], &stb6100_config,
+		&adap->dev->i2c_adap))
+		return -EIO;
+
+	info("Attached stb6100!\n");
 
 	return 0;
 }
@@ -220,23 +219,47 @@ static int tbs5925_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 	return 0;
 };
 
+static int tbs5925_set_voltage(struct dvb_frontend *fe, 
+						fe_sec_voltage_t voltage)
+{
+	static u8 command_13v[1] = {0x00};
+	static u8 command_18v[1] = {0x01};
+	struct i2c_msg msg[] = {
+		{.addr = TBS5925_VOLTAGE_CTRL, .flags = 0,
+			.buf = command_13v, .len = 1},
+	};
+	
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+	if (voltage == SEC_VOLTAGE_18)
+		msg[0].buf = command_18v;
+	//info("tbs5925_set_voltage %d",voltage);
+	i2c_transfer(&udev_adap->dev->i2c_adap, msg, 1);
+	return 0;
+}
+
 static struct dvb_usb_device_properties tbs5925_properties;
 
 static int tbs5925_frontend_attach(struct dvb_usb_adapter *d)
 {
 	u8 buf[20];
 
-	struct tbs5925fe_ctrl_dev *ctl;
-
 	if (tbs5925_properties.adapter->tuner_attach == &tbs5925_tuner_attach) {
 		d->fe[0] = dvb_attach(stv090x_attach, &stv0900_config,
 					&d->dev->i2c_adap, STV090x_DEMODULATOR_0);
 		if (d->fe[0] != NULL) {
-			ctl = dvb_attach(tbs5925fe_ctrl_attach, d->fe[0], &d->dev->i2c_adap, 
-					&tbs5925fe_config[0]);
-			if (!ctl) 
-				return -EIO;
-			info("TBS 5925 FE Attached.\n");
+			d->fe[0]->ops.set_voltage = tbs5925_set_voltage;
+			info("Attached stv0900!\n");
+
+			buf[0] = 6;
+			buf[1] = 1;
+			tbs5925_op_rw(d->dev->udev, 0x8a, 0, 0,
+					buf, 2, TBS5925_WRITE_MSG);
+
+			buf[0] = 1;
+			buf[1] = 1;
+			tbs5925_op_rw(d->dev->udev, 0x8a, 0, 0,
+					buf, 2, TBS5925_WRITE_MSG);
 
 			buf[0] = 7;
 			buf[1] = 1;
