@@ -157,6 +157,7 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 			ret = -EINVAL;
 			goto error;
 		}
+		buf[0] = 0x30;
 		break;
 	case SYS_DVBT2:
 		switch (c->bandwidth_hz) {
@@ -176,10 +177,12 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 			ret = -EINVAL;
 			goto error;
 		}
+		buf[0] = 0x30;
 		break;
 	case SYS_DVBC_ANNEX_AC:
 		if_khz = priv->cfg->if_dvbc;
 		i = 6;
+		buf[0] = 0;
 		break;
 	default:
 		ret = -EINVAL;
@@ -190,7 +193,18 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 	if (ret)
 		goto error;
 
+	ret = tda18212_wr_reg(priv, 0x5f, 0x00);
+	if (ret)
+		goto error;
+
 	ret = tda18212_wr_reg(priv, 0x06, 0x00);
+	if (ret)
+		goto error;
+
+	if (priv->cfg->loop_through)
+		buf[0] |= 0x80;
+
+	ret = tda18212_wr_reg(priv, 0x0c, buf[0]);
 	if (ret)
 		goto error;
 
@@ -200,7 +214,7 @@ static int tda18212_set_params(struct dvb_frontend *fe,
 
 	buf[0] = 0x02;
 	buf[1] = bw_params[i][1];
-	buf[2] = 0x03; /* default value */
+	buf[2] = priv->cfg->xtout ? 0x43 : 0x40;
 	buf[3] = if_khz / 50;
 	buf[4] = ((c->frequency / 1000) >> 16) & 0xff;
 	buf[5] = ((c->frequency / 1000) >>  8) & 0xff;
@@ -229,6 +243,27 @@ static int tda18212_release(struct dvb_frontend *fe)
 	return 0;
 }
 
+static int tda18212_sleep(struct dvb_frontend *fe)
+{
+	struct tda18212_priv *priv = fe->tuner_priv;
+	int ret;
+
+	if (fe->ops.i2c_gate_ctrl)
+		fe->ops.i2c_gate_ctrl(fe, 1); /* open I2C-gate */
+
+	/* standby */
+	ret = tda18212_wr_reg(priv, 0x5f, 0xe0);
+	ret = tda18212_wr_reg(priv, 0x06, 0x08);
+
+	if (fe->ops.i2c_gate_ctrl)
+		fe->ops.i2c_gate_ctrl(fe, 0); /* close I2C-gate */
+
+	if (ret)
+		dbg("%s: failed ret:%d", __func__, ret);
+
+	return ret;
+}
+
 static const struct dvb_tuner_ops tda18212_tuner_ops = {
 	.info = {
 		.name           = "NXP TDA18212",
@@ -239,6 +274,7 @@ static const struct dvb_tuner_ops tda18212_tuner_ops = {
 	},
 
 	.release       = tda18212_release,
+	.sleep         = tda18212_sleep,
 
 	.set_params    = tda18212_set_params,
 };
