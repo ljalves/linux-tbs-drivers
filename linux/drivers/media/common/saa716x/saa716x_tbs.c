@@ -1712,6 +1712,19 @@ static struct cxd2820r_config cxd2820r_config1 = {
 	.if_dvbc = 5000,
 };
 
+static struct tda18212_config tda18212_config = {
+	.i2c_address = 0x60 /* (0xc0 >> 1) */,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+	.loop_through = 0,
+	.xtout = 0
+};
+
 static struct tda18212_config tda18212_config0 = {
 	.i2c_address = 0x60 /* (0xc0 >> 1) */,
 	.if_dvbt_6 = 3550,
@@ -1721,6 +1734,8 @@ static struct tda18212_config tda18212_config0 = {
 	.if_dvbt2_7 = 4000,
 	.if_dvbt2_8 = 4000,
 	.if_dvbc = 5000,
+	.loop_through = 1,
+	.xtout = 1
 };
 
 static struct tda18212_config tda18212_config1 = {
@@ -1732,6 +1747,8 @@ static struct tda18212_config tda18212_config1 = {
 	.if_dvbt2_7 = 4000,
 	.if_dvbt2_8 = 4000,
 	.if_dvbc = 5000,
+	.loop_through = 0,
+	.xtout = 0
 };
 
 static int saa716x_tbs6220_frontend_attach(struct saa716x_adapter *adapter, int count)
@@ -1746,7 +1763,7 @@ static int saa716x_tbs6220_frontend_attach(struct saa716x_adapter *adapter, int 
 			goto exit;
 
 		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c->i2c_adapter, &tda18212_config0)) {
+			&i2c->i2c_adapter, &tda18212_config)) {
 			dvb_frontend_detach(adapter->fe);
 			goto exit;
 		}
