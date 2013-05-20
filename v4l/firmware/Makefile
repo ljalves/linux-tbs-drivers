@@ -5,6 +5,8 @@ TARGETS = vicam/firmware.fw dabusb/firmware.fw dabusb/bitstream.bin ttusb-budget
 	dvb-usb-tbsqbox-id5921.fw dvb-usb-tbsqbox-id5922.fw dvb-usb-tbsqbox-id5928.fw \
 	dvb-usb-tbsqbox-dvbc.fw dvb-usb-tbsqbox-id5680.fw dvb-usb-tbsqbox-id5880.fw \
 	dvb-usb-p1100.fw dvb-usb-p1100-old.fw dvb-usb-p7500.fw dvb-usb-s620.fw dvb-usb-s630.fw dvb-usb-s660.fw \
+	dvb-demod-drxk-pctv.fw dvb-fe-tda10045.fw dvb-fe-tda10046.fw dvb-fe-tda10048-1.0.fw dvb-fe-tda10071.fw \
+	dvb-usb-tt-s2400-01.fw dvb-usb-pctv-400e-01.fw dvb-usb-pctv-450e-01.fw dvb-usb-pctv-452e-01.fw \
 	dvb-usb-SkyStar_USB_HD_FW_v17_63.HEX.fw
 
 FW_DIR  = $(DESTDIR)/lib/firmware
