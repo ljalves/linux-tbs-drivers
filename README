@@ -1,43 +1,58 @@
-This is an experimental build system for media drivers.
-All files on this tree are covered by GPLv2, as stated at COPYING file.
+README file for TurboSight Linux drivers
 
-Usage:
+NOTE: this document assumes that all prerequisite packages like kerner headers
+and build tools are already installed in your Linux system.
 
-Just call the build utility:
-	$ ./build
+Most of the steps require root access to and basic knowledge of Linux system.
 
-Then, install the drivers as root, with:
-	# make install
+Create directory, for example /root/tbs and copy the following file to it:
 
-In order to test, unload old drivers with:
-	# make rmmod
+- linux-tbs-drivers.tar.bz2 (S2API Linix driver for TurboSight TBS 6921)
 
-Then modprobe the driver you want to test. For example, to load driver 'foo':
-	# modprobe foo
+I.1 extract linux-tbs-drivers.tar.bz2 archive:
 
+# tar xjvf linux-tbs-drivers.tar.bz2
 
-If you're developing a new driver or patch, it is better to use:
-	$ ./build --main-git
+I.2 go to driver package directory:
 
-Then, install the drivers as root, with:
-	# make install
+# cd linux-tbs-drivers
 
-In order to test, unload old drivers with:
-	# make rmmod
+I.3 depending on your kernel version and if the kernel is x86 or 
+x86_64 (check output of 'uname -a') do:
 
-Then modprobe the driver you want to test. For example:
-	# modprobe bttv
+- for x86 kernel 3.x (x86 32 bit installations of kernel 3.x):
 
-In this case, in order to modify something, you should edit the file at
-the media/ subdir.
+# ./v4l/tbs-x86_r3.sh
 
-For example, a typical procedure to develop a new patch would be:
+- for x86 kernel 2.6.x (x86 32 bit installations of kernel 2.6.x):
 
-	~/media_build $ cd media
-	~/media $ gedit drivers/media/video/foo.c
-	~/media $ make -C ../v4l
-	~/media $ make -C .. rmmod
-	~/media $ modprobe foo
-	(some procedure to test the "foo" driver)
-	~/media $ git diff >/tmp/my_changes.patch
-	(email /tmp/my_changes.patch inlined to linux-media@vger.kernel.org)
+# ./v4l/tbs-x86.sh
+
+- for any x86_64 kernel (x86 64 bit installations of Linux):
+
+# ./v4l/tbs-x86_64.sh
+
+I.4 build and install the driver:
+# cd ..
+# make && make install
+
+I.5 reboot in order to load the newly installed driver:
+
+# shutdown -r now
+
+I.6 after reboot check that the newly installed driver is loaded correctly:
+
+# dmesg | grep cx23885
+
+if everything is OK, the output from the above command should be similar to:
+
+cx23885 driver version 0.0.2 loaded
+cx23885[0]: subsystem: 6921:8888, board: TurboSight TBS 6921 [card=31,autodetected]
+cx25840 4-0044: cx23885 A/V decoder found @ 0x88 (cx23885[0])
+cx25840 4-0044: firmware: requesting v4l-cx23885-avcore-01.fw
+cx25840 4-0044: loaded v4l-cx23885-avcore-01.fw firmware (16382 bytes)
+cx23885_dvb_register() allocating 1 frontend(s)
+cx23885[0]: cx23885 based dvb card
+DVB: registering new adapter (cx23885[0])
+cx23885_dev_checkrevision() Hardware revision = 0xb0
+input: cx23885 IR (TurboSight TBS 6921) as /devices/pci0000:00/0000:00:0c.0/0000:03:00.0/input/input5
