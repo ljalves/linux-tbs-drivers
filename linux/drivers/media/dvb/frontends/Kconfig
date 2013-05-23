@@ -410,6 +410,13 @@ config DVB_TBS6923FE
 	help
 	  A DVB-S/S2 tuner module. Say Y when you want to support this frontend.
 
+config DVB_TT_S2_4100
+	tristate "Technotrend TT-budget S2-4100 based"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  A DVB-S/S2 tuner module. Say Y when you want to support this frontend.
+
 config DVB_SI21XX
 	tristate "Silicon Labs SI21XX based"
 	depends on DVB_CORE && I2C

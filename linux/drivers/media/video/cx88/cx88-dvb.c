@@ -59,8 +59,7 @@
 #include "stb6100_proc.h"
 #include "mb86a16.h"
 #include "ds3000.h"
-#include "tbs8921fe.h"
-#include "tbs8921ctrl.h"
+#include "tda10071.h"
 #include "tbs8922fe.h"
 #include "tbs8922ctrl.h"
 #include "tbsfe.h"
@@ -685,11 +684,13 @@ static const struct cx24116_config hauppauge_hvr4000_config = {
 	.reset_device           = cx24116_reset_device,
 };
 
-static struct tbs8921fe_config tbs8921_fe_config = {
-	.tbs8921fe_address = 0x55,
-
-	.tbs8921_ctrl1 = tbs8921ctrl1,
-	.tbs8921_ctrl2 = tbs8921ctrl2,
+static const struct tda10071_config tbs_tda10071_config = {
+	.i2c_address = 0x55, /* (0xaa >> 1) */
+	.i2c_wr_max = 64,
+	.ts_mode = TDA10071_TS_PARALLEL,
+	.spec_inv = 0,
+	.xtal = 40444000, /* 40.444 MHz */
+	.pll_multiplier = 20,
 };
 
 static struct tbs8922fe_config tbs8922_fe_config = {
@@ -1491,11 +1492,10 @@ static int dvb_register(struct cx8802_dev *dev)
 	case CX88_BOARD_TBS_8921:
 		dev->ts_gen_cntrl = 0x04;
 
-		fe0->dvb.frontend = dvb_attach(tbs8921fe_attach,
-						&tbs8921_fe_config,
-						&core->i2c_adap, 0);
+		fe0->dvb.frontend = dvb_attach(tda10071_attach, &tbs_tda10071_config, &core->i2c_adap);
+
 		if (fe0->dvb.frontend != NULL)
-			dvb_attach(tbsfe_attach, fe0->dvb.frontend);
+			fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_TBS_8922:
 		dev->ts_gen_cntrl = 0x04;

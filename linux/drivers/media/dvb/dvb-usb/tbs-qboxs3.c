@@ -21,9 +21,7 @@
 
 #include <linux/version.h>
 #include "tbs-qboxs3.h"
-#include "tbs5921fe.h"
-#include "tbs5921ctrl.h"
-#include "tbsfe.h"
+#include "tda10071.h"
 
 #ifndef USB_PID_TBSQBOX_1
 #define USB_PID_TBSQBOX_1 0x5921
@@ -155,6 +153,11 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			break;
 		}
 		case (TBSQBOX_VOLTAGE_CTRL): {
+			buf6[0] = 3;
+			buf6[1] = msg[0].buf[0];
+			tbsqboxs3_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBSQBOX_WRITE_MSG);
+
 			break;
 		}
 		}
@@ -178,10 +181,13 @@ static struct i2c_algorithm tbsqboxs3_i2c_algo = {
 	.functionality = tbsqboxs3_i2c_func,
 };
 
-static struct tbs5921fe_config tbs5921_fe_config = {
-        .tbs5921fe_address = 0x55,
-
-	.tbs5921_ctrl = tbs5921ctrl,
+static const struct tda10071_config tbs_tda10071_config = {
+	.i2c_address = 0x55, /* (0xaa >> 1) */
+	.i2c_wr_max = 64,
+	.ts_mode = TDA10071_TS_PARALLEL,
+	.spec_inv = 0,
+	.xtal = 40444000, /* 40.444 MHz */
+	.pll_multiplier = 20,
 };
 
 static int tbsqboxs3_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
@@ -215,16 +221,36 @@ static int tbsqboxs3_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 	return 0;
 };
 
+static int tbsqboxs3_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
+{
+	static u8 command_13v[1] = {0x00};
+	static u8 command_18v[1] = {0x01};
+	struct i2c_msg msg[] = {
+		{.addr = TBSQBOX_VOLTAGE_CTRL, .flags = 0,
+			.buf = command_13v, .len = 1},
+	};
+	
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+	if (voltage == SEC_VOLTAGE_18)
+		msg[0].buf = command_18v;
+	info("tbsqboxs3_set_voltage %d",voltage);
+	i2c_transfer(&udev_adap->dev->i2c_adap, msg, 1);
+	return 0;
+}
+
+
 static struct dvb_usb_device_properties tbsqboxs3_properties;
 
 static int tbsqboxs3_frontend_attach(struct dvb_usb_adapter *d)
 {
 	u8 buf[20];
 	
-        if ((d->fe[0] = dvb_attach(tbs5921fe_attach, &tbs5921_fe_config,
-                                        &d->dev->i2c_adap, 0)) != NULL) {
-			printk("QBOXS3: TBS5921FE attached.\n");
-			dvb_attach(tbsfe_attach, d->fe[0]);
+        if ((d->fe[0] = dvb_attach(tda10071_attach,
+				&tbs_tda10071_config, &d->dev->i2c_adap)) != NULL) {
+
+			d->fe[0]->ops.set_voltage = tbsqboxs3_set_voltage;
+			printk("QBOXS3: TDA10071 attached.\n");
 
 			buf[0] = 7;
 			buf[1] = 1;

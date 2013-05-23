@@ -61,4 +61,7 @@ cp ./v4l/tbs6926ctrl_driver.o.x86 ./v4l/tbs6926ctrl_driver.o
 
 cp ./v4l/tbs6923fe_driver.o.x86 ./v4l/tbs6923fe_driver.o
 
+cp ./v4l/saa716x_tt_drv_x86.o ./v4l/saa716x_tt_drv.o
+cp ./v4l/tt_s2_4100_drv_x86.o ./v4l/tt_s2_4100_drv.o
+
 echo "TBS drivers configured for x86 platform."

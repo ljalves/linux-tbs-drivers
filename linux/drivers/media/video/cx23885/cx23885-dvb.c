@@ -61,9 +61,9 @@
 #include "cx23885-f300.h"
 #include "altera-ci.h"
 #include "stv0367.h"
+#include "tda10071.h"
 #include "tbs6980fe.h"
 #include "tbs6981fe.h"
-#include "tbs6921fe.h"
 #include "tbsfe.h"
 
 static unsigned int debug;
@@ -482,11 +482,13 @@ static struct tbs6981fe_config tbs6981_fe_config = {
 	.tbs6981_ctrl2 = cx23885ctrl2,
 };
 
-static struct tbs6921fe_config tbs6921_fe_config = {
-	.tbs6921fe_address = 0x55,
-
-	.tbs6921_ctrl1 = cx23885ctrl1,
-	.tbs6921_ctrl2 = cx23885ctrl2,
+static const struct tda10071_config tbs_tda10071_config = {
+	.i2c_address = 0x55, /* (0xaa >> 1) */
+	.i2c_wr_max = 64,
+	.ts_mode = TDA10071_TS_PARALLEL,
+	.spec_inv = 0,
+	.xtal = 40444000, /* 40.444 MHz */
+	.pll_multiplier = 20,
 };
 
 static struct ds3000_config tevii_ds3000_config = {
@@ -515,6 +517,21 @@ static struct xc5000_config mygica_x8506_xc5000_config = {
 	.i2c_address = 0x61,
 	.if_khz = 5380,
 };
+
+static int tbs_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
+{
+	struct cx23885_tsport *port = fe->dvb->priv;
+	struct cx23885_dev *dev = port->dev;
+
+	cx23885_gpio_set(dev, GPIO_1);
+	if (voltage == SEC_VOLTAGE_18)
+			cx23885_gpio_set(dev, GPIO_13);
+	else if (voltage == SEC_VOLTAGE_13)
+			cx23885_gpio_clear(dev, GPIO_13);
+	else
+			cx23885_gpio_clear(dev, GPIO_12);
+	return 0;
+}
 
 static int cx23885_dvb_set_frontend(struct dvb_frontend *fe,
 				    struct dvb_frontend_parameters *param)
@@ -986,15 +1003,14 @@ static int dvb_register(struct cx23885_tsport *port)
 					&i2c_bus->i2c_adap);
 		if (fe0->dvb.frontend != NULL)
 			fe0->dvb.frontend->ops.set_voltage = f300_set_voltage;
-
 		break;
 	case CX23885_BOARD_TBS_6921:
 		i2c_bus = &dev->i2c_bus[1];
 
-		fe0->dvb.frontend = dvb_attach(tbs6921fe_attach,
-					&tbs6921_fe_config,
-					&i2c_bus->i2c_adap, 0);
-		dvb_attach(tbsfe_attach, fe0->dvb.frontend);
+		fe0->dvb.frontend = dvb_attach(tda10071_attach, &tbs_tda10071_config, &i2c_bus->i2c_adap);
+
+		if (fe0->dvb.frontend != NULL)
+			fe0->dvb.frontend->ops.set_voltage = tbs_set_voltage;
 		break;
 	case CX23885_BOARD_TBS_6980:
 		i2c_bus = &dev->i2c_bus[1];
