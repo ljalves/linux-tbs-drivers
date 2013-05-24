@@ -244,6 +244,42 @@ struct cx23885_board cx23885_boards[] = {
 		.name		= "DVBWorld DVB-S2 2005",
 		.portb		= CX23885_MPEG_DVB,
 	},
+	[CX23885_BOARD_TEVII_S471] = {
+		.name		= "TeVii S471",
+		.portb		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_BST_PS8512] = {
+		.name		= "Bestunar PS8512",
+		.portb		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_DVBSKY_S950] = {
+		.name		= "DVBSKY S950",
+		.portb		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_DVBSKY_S952] = {
+		.name		= "DVBSKY S952",
+		.portb		= CX23885_MPEG_DVB,
+		.portc		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_DVBSKY_S950_CI] = {
+		.ci_type	= 3,
+		.name		= "DVBSKY S950CI DVB-S2 CI",
+		.portb		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_DVBSKY_C2800E_CI] = {
+		.ci_type	= 3,
+		.name		= "DVBSKY C2800E DVB-C CI",
+		.portb		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_DVBSKY_T9580] = {
+		.name		= "DVBSKY T9580",
+		.portb		= CX23885_MPEG_DVB,
+		.portc		= CX23885_MPEG_DVB,
+	},
+	[CX23885_BOARD_PROF_8000] = {
+		.name		= "Prof Revolution DVB-S2 8000",
+		.portb		= CX23885_MPEG_DVB,
+	},
 	[CX23885_BOARD_NETUP_DUAL_DVBS2_CI] = {
 		.ci_type	= 1,
 		.name		= "NetUP Dual DVB-S2 CI",
@@ -517,6 +553,38 @@ struct cx23885_subid cx23885_subids[] = {
 		.subvendor = 0x0001,
 		.subdevice = 0x2005,
 		.card      = CX23885_BOARD_DVBWORLD_2005,
+	}, {
+		.subvendor = 0xd471,
+		.subdevice = 0x9022,
+		.card      = CX23885_BOARD_TEVII_S471,
+	}, {
+		.subvendor = 0x14f1,
+		.subdevice = 0x8512,
+		.card      = CX23885_BOARD_BST_PS8512,
+	}, {
+		.subvendor = 0x4254,
+		.subdevice = 0x0950,
+		.card      = CX23885_BOARD_DVBSKY_S950,		
+	}, {
+		.subvendor = 0x4254,
+		.subdevice = 0x0952,
+		.card      = CX23885_BOARD_DVBSKY_S952,
+	}, {
+		.subvendor = 0x4254,
+		.subdevice = 0x950C,
+		.card      = CX23885_BOARD_DVBSKY_S950_CI,
+	}, {
+		.subvendor = 0x4254,
+		.subdevice = 0x2800,
+		.card      = CX23885_BOARD_DVBSKY_C2800E_CI,
+	}, {
+		.subvendor = 0x4254,
+		.subdevice = 0x9580,
+		.card      = CX23885_BOARD_DVBSKY_T9580,
+	}, {
+		.subvendor = 0x8000,
+		.subdevice = 0x3034,
+		.card      = CX23885_BOARD_PROF_8000,
 	}, {
 		.subvendor = 0x1b55,
 		.subdevice = 0x2a2c,
@@ -1008,6 +1076,53 @@ void cx23885_gpio_setup(struct cx23885_dev *dev)
 		cx_set(MC417_RWD, 0x00000800);
 		mdelay(200);
 		break;
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_BST_PS8512:			
+		cx23885_gpio_enable(dev, GPIO_2, 1);
+		cx23885_gpio_clear(dev, GPIO_2);
+		msleep(100);		
+		cx23885_gpio_set(dev, GPIO_2);
+		break;
+	case CX23885_BOARD_DVBSKY_S952:
+	case CX23885_BOARD_DVBSKY_T9580:
+		cx_write(MC417_CTL, 0x00000037);/* enable GPIO3-18 pins */
+		
+		cx23885_gpio_enable(dev, GPIO_2, 1);
+		cx23885_gpio_enable(dev, GPIO_11, 1);
+		
+		cx23885_gpio_clear(dev, GPIO_2);
+		cx23885_gpio_clear(dev, GPIO_11);
+		msleep(100);		
+		cx23885_gpio_set(dev, GPIO_2);
+		cx23885_gpio_set(dev, GPIO_11);	
+		break;
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
+		/* GPIO-0 INTA from CiMax, input
+		   GPIO-1 reset CiMax, output, high active
+		   GPIO-2 reset demod, output, low active
+		   GPIO-3 to GPIO-10 data/addr for CAM
+		   GPIO-11 ~CS0 to CiMax1
+		   GPIO-12 ~CS1 to CiMax2
+		   GPIO-13 ADL0 load LSB addr
+		   GPIO-14 ADL1 load MSB addr
+		   GPIO-15 ~RDY from CiMax
+		   GPIO-17 ~RD to CiMax
+		   GPIO-18 ~WR to CiMax
+		 */
+		cx_set(GP0_IO, 0x00060002); /* GPIO 1/2 as output */
+		cx_clear(GP0_IO, 0x00010004); /*GPIO 0 as input*/
+		mdelay(100);/* reset delay */
+		cx_set(GP0_IO, 0x00060004); /* GPIO as out, reset high */
+		cx_clear(GP0_IO, 0x00010002);
+		cx_write(MC417_CTL, 0x00000037);/* enable GPIO3-18 pins */
+		/* GPIO-15 IN as ~ACK, rest as OUT */
+		cx_write(MC417_OEN, 0x00001000);
+		/* ~RD, ~WR high; ADL0, ADL1 low; ~CS0, ~CS1 high */
+		cx_write(MC417_RWD, 0x0000c300);
+		/* enable irq */
+		cx_write(GPIO_ISM, 0x00000000);/* INTERRUPTS active low*/
+		break;
 	case CX23885_BOARD_NETUP_DUAL_DVBS2_CI:
 		/* GPIO-0 INTA from CiMax1
 		   GPIO-1 INTB from CiMax2
@@ -1133,6 +1248,34 @@ void cx23885_gpio_setup(struct cx23885_dev *dev)
 	}
 }
 
+static int cx23885_ir_patch(struct i2c_adapter *i2c, u8 reg, u8 mask)
+{
+	struct i2c_msg msgs[2];
+	u8 tx_buf[2], rx_buf[1];
+	/* Write register address */
+	tx_buf[0] = reg;
+	msgs[0].addr = 0x4c;
+	msgs[0].flags = 0;
+	msgs[0].len = 1;
+	msgs[0].buf = (char *) tx_buf;
+	/* Read data from register */
+	msgs[1].addr = 0x4c;
+	msgs[1].flags = I2C_M_RD;
+	msgs[1].len = 1;
+	msgs[1].buf = (char *) rx_buf;	
+	
+	i2c_transfer(i2c, msgs, 2);
+
+	tx_buf[0] = reg;
+	tx_buf[1] = rx_buf[0] | mask;
+	msgs[0].addr = 0x4c;
+	msgs[0].flags = 0;
+	msgs[0].len = 2;
+	msgs[0].buf = (char *) tx_buf;
+	
+	return i2c_transfer(i2c, msgs, 1);
+}
+
 int cx23885_ir_init(struct cx23885_dev *dev)
 {
 	static struct v4l2_subdev_io_pin_config ir_rxtx_pin_cfg[] = {
@@ -1205,6 +1348,7 @@ int cx23885_ir_init(struct cx23885_dev *dev)
 		v4l2_subdev_call(dev->sd_ir, ir, tx_s_parameters, &params);
 		break;
 	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
 		if (!enable_885_ir)
 			break;
 		dev->sd_ir = cx23885_find_hw(dev, CX23885_HW_AV_CORE);
@@ -1214,6 +1358,23 @@ int cx23885_ir_init(struct cx23885_dev *dev)
 		}
 		v4l2_subdev_call(dev->sd_cx25840, core, s_io_pin_config,
 				 ir_rx_pin_cfg_count, ir_rx_pin_cfg);
+		break;
+	case CX23885_BOARD_BST_PS8512:
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_DVBSKY_S952:
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
+	case CX23885_BOARD_DVBSKY_T9580:
+		dev->sd_ir = cx23885_find_hw(dev, CX23885_HW_AV_CORE);
+		if (dev->sd_ir == NULL) {
+			ret = -ENODEV;
+			break;
+		}
+		v4l2_subdev_call(dev->sd_cx25840, core, s_io_pin_config,
+				 ir_rx_pin_cfg_count, ir_rx_pin_cfg);
+				 
+		cx23885_ir_patch(&(dev->i2c_bus[2].i2c_adap),0x1f,0x80);
+		cx23885_ir_patch(&(dev->i2c_bus[2].i2c_adap),0x23,0x80);
 		break;
 	case CX23885_BOARD_HAUPPAUGE_HVR1250:
 		if (!enable_885_ir)
@@ -1226,6 +1387,7 @@ int cx23885_ir_init(struct cx23885_dev *dev)
 		v4l2_subdev_call(dev->sd_cx25840, core, s_io_pin_config,
 				 ir_rxtx_pin_cfg_count, ir_rxtx_pin_cfg);
 		break;
+	case CX23885_BOARD_PROF_8000:
 	case CX23885_BOARD_TBS_6920:
 	case CX23885_BOARD_TBS_6921:
 	case CX23885_BOARD_TBS_6980:

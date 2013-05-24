@@ -59,6 +59,7 @@
 #include "stb6100_proc.h"
 #include "mb86a16.h"
 #include "ds3000.h"
+#include "m88ds3103.h"
 #include "tda10071.h"
 #include "tbs8922fe.h"
 #include "tbs8922ctrl.h"
@@ -463,6 +464,57 @@ static int tevii_dvbs_set_voltage(struct dvb_frontend *fe,
 	return 0;
 }
 
+/*CX88_BOARD_BST_PS8312*/
+static int bst_dvbs_set_voltage(struct dvb_frontend *fe,
+				      fe_sec_voltage_t voltage)
+{
+	struct cx8802_dev *dev= fe->dvb->priv;
+	struct cx88_core *core = dev->core;
+
+	cx_write(MO_GP1_IO, 0x111111);
+	switch (voltage) {
+		case SEC_VOLTAGE_13:
+			cx_write(MO_GP1_IO, 0x020200);
+			break;
+		case SEC_VOLTAGE_18:
+			cx_write(MO_GP1_IO, 0x020202);
+			break;
+		case SEC_VOLTAGE_OFF:
+			cx_write(MO_GP1_IO, 0x111100);
+			break;
+	}
+
+	if (core->prev_set_voltage)
+		return core->prev_set_voltage(fe, voltage);
+	return 0;
+}
+
+static int bst_dvbs_set_voltage_v2(struct dvb_frontend *fe,
+				      fe_sec_voltage_t voltage)
+{
+	struct cx8802_dev *dev= fe->dvb->priv;
+	struct cx88_core *core = dev->core;
+
+	cx_write(MO_GP1_IO, 0x111101);
+	switch (voltage) {
+		case SEC_VOLTAGE_13:
+			cx_write(MO_GP1_IO, 0x020200);
+			break;
+		case SEC_VOLTAGE_18:
+
+			cx_write(MO_GP1_IO, 0x020202);
+			break;
+		case SEC_VOLTAGE_OFF:
+
+			cx_write(MO_GP1_IO, 0x111110);
+			break;
+	}
+
+	if (core->prev_set_voltage)
+		return core->prev_set_voltage(fe, voltage);
+	return 0;
+}
+
 static int vp1027_set_voltage(struct dvb_frontend *fe,
 				    fe_sec_voltage_t voltage)
 {
@@ -716,6 +768,11 @@ static int ds3000_set_ts_param(struct dvb_frontend *fe,
 }
 
 static struct ds3000_config tevii_ds3000_config = {
+	.demod_address = 0x68,
+	.set_ts_params = ds3000_set_ts_param,
+};
+
+static struct m88ds3103_config dvbsky_ds3103_config = {
 	.demod_address = 0x68,
 	.set_ts_params = ds3000_set_ts_param,
 };
@@ -1478,6 +1535,35 @@ static int dvb_register(struct cx8802_dev *dev)
 		if (fe0->dvb.frontend != NULL)
 			fe0->dvb.frontend->ops.set_voltage =
 							tevii_dvbs_set_voltage;
+		break;
+	case CX88_BOARD_BST_PS8312:
+		fe0->dvb.frontend = dvb_attach(m88ds3103_attach,
+						&dvbsky_ds3103_config,
+						&core->i2c_adap);
+		if (fe0->dvb.frontend != NULL){
+			int ret;
+			u8 b0[] = { 0x60 };
+			u8 b1[2] = { 0 };
+			struct i2c_msg msg[] = {
+				{
+				.addr = 0x50,
+				.flags = 0,
+				.buf = b0,
+				.len = 1
+				}, {
+				.addr = 0x50,
+				.flags = I2C_M_RD,
+				.buf = b1,
+				.len = 2
+				}
+			};
+			ret = i2c_transfer(&core->i2c_adap, msg, 2);
+			printk("PS8312: config = %02x, %02x", b1[0],b1[1]);
+			if(b1[0] == 0xaa)
+				fe0->dvb.frontend->ops.set_voltage = bst_dvbs_set_voltage_v2;
+			else			
+				fe0->dvb.frontend->ops.set_voltage = bst_dvbs_set_voltage;
+		}
 		break;
 	case CX88_BOARD_OMICOM_SS4_PCI:
 	case CX88_BOARD_TBS_8920:

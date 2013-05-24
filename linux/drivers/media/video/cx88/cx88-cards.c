@@ -2263,6 +2263,18 @@ static const struct cx88_board cx88_boards[] = {
 		} },
 		.mpeg           = CX88_MPEG_DVB,
 	},
+	[CX88_BOARD_BST_PS8312] = {
+		.name           = "Bestunar PS8312 DVB-S/S2",
+		.tuner_type     = UNSET,
+		.radio_type     = UNSET,
+		.tuner_addr     = ADDR_UNSET,
+		.radio_addr     = ADDR_UNSET,
+		.input          = { {
+			.type   = CX88_VMUX_DVB,
+			.vmux   = 0,
+		} },
+		.mpeg           = CX88_MPEG_DVB,
+	},
 };
 
 /* ------------------------------------------------------------------ */
@@ -2760,6 +2772,10 @@ static const struct cx88_subid cx88_subids[] = {
 		.subvendor = 0x1822,
 		.subdevice = 0x0023,
 		.card      = CX88_BOARD_TWINHAN_VP1027_DVBS,
+	}, {
+		.subvendor = 0x14f1,
+		.subdevice = 0x8312,
+		.card      = CX88_BOARD_BST_PS8312,
 	},
 };
 
