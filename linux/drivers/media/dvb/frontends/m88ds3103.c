@@ -1530,6 +1530,25 @@ static int m88ds3103_set_frontend(struct dvb_frontend *fe,
 	return 0;
 }
 
+static int m88ds3103_tune(struct dvb_frontend *fe,
+			struct dvb_frontend_parameters *p,
+			unsigned int mode_flags,
+			unsigned int *delay,
+			fe_status_t *status)
+{
+	dprintk("%s() ", __func__);
+
+	*delay = HZ / 5;
+
+	if (p) {
+		int ret = m88ds3103_set_frontend(fe, p);
+		if (ret)
+			return ret;
+	}
+
+	return m88ds3103_read_status(fe, status);
+}
+
 static enum dvbfe_algo m88ds3103_get_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_HW;
@@ -1681,6 +1700,7 @@ static struct dvb_frontend_ops m88ds3103_ops = {
 	.diseqc_send_master_cmd = m88ds3103_send_diseqc_msg,
 	.diseqc_send_burst = m88ds3103_diseqc_send_burst,
 	.get_frontend_algo = m88ds3103_get_algo,
+	.tune = m88ds3103_tune,
 	.set_frontend = m88ds3103_set_frontend,
 };
 

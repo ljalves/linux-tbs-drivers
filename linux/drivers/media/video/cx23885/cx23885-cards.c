@@ -1421,6 +1421,14 @@ void cx23885_ir_fini(struct cx23885_dev *dev)
 		dev->sd_ir = NULL;
 		break;
 	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
+	case CX23885_BOARD_PROF_8000:
+	case CX23885_BOARD_BST_PS8512:
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_DVBSKY_S952:
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
+	case CX23885_BOARD_DVBSKY_T9580:
 	case CX23885_BOARD_HAUPPAUGE_HVR1250:
 	case CX23885_BOARD_TBS_6920:
 	case CX23885_BOARD_TBS_6921:
@@ -1468,6 +1476,14 @@ void cx23885_ir_pci_int_enable(struct cx23885_dev *dev)
 			cx23885_irq_add_enable(dev, PCI_MSK_IR);
 		break;
 	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
+	case CX23885_BOARD_PROF_8000:
+	case CX23885_BOARD_BST_PS8512:
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_DVBSKY_S952:
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
+	case CX23885_BOARD_DVBSKY_T9580:
 	case CX23885_BOARD_HAUPPAUGE_HVR1250:
 	case CX23885_BOARD_TBS_6920:
 	case CX23885_BOARD_TBS_6921:
@@ -1565,12 +1581,34 @@ void cx23885_card_setup(struct cx23885_dev *dev)
 		ts2->ts_clk_en_val = 0x1;  /* Enable TS_CLK */
 		ts2->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
 		break;
+	case CX23885_BOARD_BST_PS8512:
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
 	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
 	case CX23885_BOARD_DVBWORLD_2005:
+	case CX23885_BOARD_PROF_8000:
 		ts1->gen_ctrl_val  = 0x5; /* Parallel */
 		ts1->ts_clk_en_val = 0x1; /* Enable TS_CLK */
 		ts1->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
 		break;
+	case CX23885_BOARD_DVBSKY_S952:
+		ts1->gen_ctrl_val  = 0x5; /* Parallel */
+		ts1->ts_clk_en_val = 0x1; /* Enable TS_CLK */
+		ts1->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
+		ts2->gen_ctrl_val  = 0xe; /* Serial bus + punctured clock */
+		ts2->ts_clk_en_val = 0x1; /* Enable TS_CLK */
+		ts2->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
+		break;
+	case CX23885_BOARD_DVBSKY_T9580:
+		ts1->gen_ctrl_val  = 0x5; /* Parallel */
+		ts1->ts_clk_en_val = 0x1; /* Enable TS_CLK */
+		ts1->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
+		ts2->gen_ctrl_val  = 0x8; /* Serial bus */
+		ts2->ts_clk_en_val = 0x1; /* Enable TS_CLK */
+		ts2->src_sel_val   = CX23885_SRC_SEL_PARALLEL_MPEG_VIDEO;
+		break;		
 	case CX23885_BOARD_NETUP_DUAL_DVBS2_CI:
 	case CX23885_BOARD_NETUP_DUAL_DVB_T_C_CI_RF:
 		ts1->gen_ctrl_val  = 0xc; /* Serial bus + punctured clock */
@@ -1623,6 +1661,7 @@ void cx23885_card_setup(struct cx23885_dev *dev)
 	 */
 	switch (dev->board) {
 	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
 	case CX23885_BOARD_HAUPPAUGE_HVR1250:
 		/* Currently only enabled for the integrated IR controller */
 		if (!enable_885_ir)
@@ -1643,6 +1682,13 @@ void cx23885_card_setup(struct cx23885_dev *dev)
 	case CX23885_BOARD_HAUPPAUGE_HVR1290:
 	case CX23885_BOARD_LEADTEK_WINFAST_PXTV1200:
 	case CX23885_BOARD_GOTVIEW_X5_3D_HYBRID:
+	case CX23885_BOARD_BST_PS8512:
+	case CX23885_BOARD_DVBSKY_S950:
+	case CX23885_BOARD_DVBSKY_S952:
+	case CX23885_BOARD_DVBSKY_S950_CI:
+	case CX23885_BOARD_DVBSKY_C2800E_CI:
+	case CX23885_BOARD_DVBSKY_T9580:
+	case CX23885_BOARD_PROF_8000:
 	case CX23885_BOARD_TBS_6920:
 	case CX23885_BOARD_TBS_6921:
 	case CX23885_BOARD_TBS_6980:
