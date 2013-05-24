@@ -1347,18 +1347,6 @@ int cx23885_ir_init(struct cx23885_dev *dev)
 		params.shutdown = true;
 		v4l2_subdev_call(dev->sd_ir, ir, tx_s_parameters, &params);
 		break;
-	case CX23885_BOARD_TEVII_S470:
-	case CX23885_BOARD_TEVII_S471:
-		if (!enable_885_ir)
-			break;
-		dev->sd_ir = cx23885_find_hw(dev, CX23885_HW_AV_CORE);
-		if (dev->sd_ir == NULL) {
-			ret = -ENODEV;
-			break;
-		}
-		v4l2_subdev_call(dev->sd_cx25840, core, s_io_pin_config,
-				 ir_rx_pin_cfg_count, ir_rx_pin_cfg);
-		break;
 	case CX23885_BOARD_BST_PS8512:
 	case CX23885_BOARD_DVBSKY_S950:
 	case CX23885_BOARD_DVBSKY_S952:
@@ -1387,6 +1375,8 @@ int cx23885_ir_init(struct cx23885_dev *dev)
 		v4l2_subdev_call(dev->sd_cx25840, core, s_io_pin_config,
 				 ir_rxtx_pin_cfg_count, ir_rxtx_pin_cfg);
 		break;
+	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
 	case CX23885_BOARD_PROF_8000:
 	case CX23885_BOARD_TBS_6920:
 	case CX23885_BOARD_TBS_6921:
@@ -1660,12 +1650,7 @@ void cx23885_card_setup(struct cx23885_dev *dev)
 	 * loaded, ensure this happens.
 	 */
 	switch (dev->board) {
-	case CX23885_BOARD_TEVII_S470:
-	case CX23885_BOARD_TEVII_S471:
 	case CX23885_BOARD_HAUPPAUGE_HVR1250:
-		/* Currently only enabled for the integrated IR controller */
-		if (!enable_885_ir)
-			break;
 	case CX23885_BOARD_HAUPPAUGE_HVR1800:
 	case CX23885_BOARD_HAUPPAUGE_HVR1800lp:
 	case CX23885_BOARD_HAUPPAUGE_HVR1700:
@@ -1682,6 +1667,8 @@ void cx23885_card_setup(struct cx23885_dev *dev)
 	case CX23885_BOARD_HAUPPAUGE_HVR1290:
 	case CX23885_BOARD_LEADTEK_WINFAST_PXTV1200:
 	case CX23885_BOARD_GOTVIEW_X5_3D_HYBRID:
+	case CX23885_BOARD_TEVII_S470:
+	case CX23885_BOARD_TEVII_S471:
 	case CX23885_BOARD_BST_PS8512:
 	case CX23885_BOARD_DVBSKY_S950:
 	case CX23885_BOARD_DVBSKY_S952:
