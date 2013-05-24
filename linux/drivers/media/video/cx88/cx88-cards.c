@@ -3505,6 +3505,12 @@ static void cx88_card_setup(struct cx88_core *core)
 		cx_write(MO_SRST_IO, 1);
 		msleep(100);
 		break;
+	case  CX88_BOARD_BST_PS8312:
+		cx_write(MO_GP1_IO, 0x808000);
+		msleep(100);
+		cx_write(MO_GP1_IO, 0x808080);
+		msleep(100);
+		break;
 	case  CX88_BOARD_TBS_8921:
 		cx_write(MO_GP0_IO, 0x0300);
 		msleep(10);
