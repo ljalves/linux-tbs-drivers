@@ -54,9 +54,9 @@
 #include "stv0288.h"
 #include "stb6000.h"
 #include "cx24116.h"
-#include "stv0900.h"
+#include "stv090x.h"
 #include "stb6100.h"
-#include "stb6100_proc.h"
+#include "stb6100_cfg.h"
 #include "mb86a16.h"
 #include "ds3000.h"
 #include "m88ds3103.h"
@@ -440,22 +440,23 @@ static int geniatech_dvbs_set_voltage(struct dvb_frontend *fe,
 	return 0;
 }
 
-static int tevii_dvbs_set_voltage(struct dvb_frontend *fe,
+static int tbs_dvbs_set_voltage(struct dvb_frontend *fe,
 				      fe_sec_voltage_t voltage)
 {
 	struct cx8802_dev *dev= fe->dvb->priv;
 	struct cx88_core *core = dev->core;
 
-	cx_set(MO_GP0_IO, 0x6040);
 	switch (voltage) {
 	case SEC_VOLTAGE_13:
+		cx_set(MO_GP0_IO, 0x6040);
 		cx_clear(MO_GP0_IO, 0x20);
 		break;
 	case SEC_VOLTAGE_18:
+		cx_set(MO_GP0_IO, 0x6040);
 		cx_set(MO_GP0_IO, 0x20);
 		break;
 	case SEC_VOLTAGE_OFF:
-		cx_clear(MO_GP0_IO, 0x20);
+		cx_clear(MO_GP0_IO,0x40);
 		break;
 	}
 
@@ -705,15 +706,6 @@ static int cx24116_set_ts_param(struct dvb_frontend *fe,
 	return 0;
 }
 
-static int stv0900_set_ts_param(struct dvb_frontend *fe,
-	int is_punctured)
-{
-	struct cx8802_dev *dev = fe->dvb->priv;
-	dev->ts_gen_cntrl = 0;
-
-	return 0;
-}
-
 static int cx24116_reset_device(struct dvb_frontend *fe)
 {
 	struct cx8802_dev *dev = fe->dvb->priv;
@@ -777,19 +769,24 @@ static struct m88ds3103_config dvbsky_ds3103_config = {
 	.set_ts_params = ds3000_set_ts_param,
 };
 
-static const struct stv0900_config prof_7301_stv0900_config = {
-	.demod_address = 0x6a,
-/*	demod_mode = 0,*/
-	.xtal = 27000000,
-	.clkmode = 3,/* 0-CLKI, 2-XTALI, else AUTO */
-	.diseqc_mode = 2,/* 2/3 PWM */
-	.tun1_maddress = 0,/* 0x60 */
-	.tun1_adc = 0,/* 2 Vpp */
-	.path1_mode = 3,
-	.set_ts_params = stv0900_set_ts_param,
+static struct stv090x_config prof_7301_stv090x_config = {
+        .device                 = STV0903,
+        .demod_mode             = STV090x_SINGLE,
+        .clk_mode               = STV090x_CLK_EXT,
+        .xtal                   = 27000000,
+        .address                = 0x6A,
+        .ts1_mode               = STV090x_TSMODE_PARALLEL_PUNCTURED,
+        .repeater_level         = STV090x_RPTLEVEL_64,
+        .adc1_range             = STV090x_ADC_2Vpp,
+        .diseqc_envelope_mode   = false,
+
+        .tuner_get_frequency    = stb6100_get_frequency,
+        .tuner_set_frequency    = stb6100_set_frequency,
+        .tuner_set_bandwidth    = stb6100_set_bandwidth,
+        .tuner_get_bandwidth    = stb6100_get_bandwidth,
 };
 
-static const struct stb6100_config prof_7301_stb6100_config = {
+static struct stb6100_config prof_7301_stb6100_config = {
 	.tuner_address = 0x60,
 	.refclock = 27000000,
 };
@@ -1506,7 +1503,7 @@ static int dvb_register(struct cx8802_dev *dev)
 					&core->i2c_adap, DVB_PLL_OPERA1))
 				goto frontend_detach;
 			core->prev_set_voltage = fe0->dvb.frontend->ops.set_voltage;
-			fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
+			fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 
 		} else {
 			fe0->dvb.frontend = dvb_attach(stv0288_attach,
@@ -1517,7 +1514,7 @@ static int dvb_register(struct cx8802_dev *dev)
 						&core->i2c_adap))
 					goto frontend_detach;
 				core->prev_set_voltage = fe0->dvb.frontend->ops.set_voltage;
-				fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
+				fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 			}
 		}
 		break;
@@ -1526,7 +1523,7 @@ static int dvb_register(struct cx8802_dev *dev)
 					       &tevii_s460_config,
 					       &core->i2c_adap);
 		if (fe0->dvb.frontend != NULL)
-			fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
+			fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_TEVII_S464:
 		fe0->dvb.frontend = dvb_attach(ds3000_attach,
@@ -1534,7 +1531,7 @@ static int dvb_register(struct cx8802_dev *dev)
 						&core->i2c_adap);
 		if (fe0->dvb.frontend != NULL)
 			fe0->dvb.frontend->ops.set_voltage =
-							tevii_dvbs_set_voltage;
+							tbs_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_BST_PS8312:
 		fe0->dvb.frontend = dvb_attach(m88ds3103_attach,
@@ -1573,7 +1570,7 @@ static int dvb_register(struct cx8802_dev *dev)
 					       &hauppauge_hvr4000_config,
 					       &core->i2c_adap);
 		if (fe0->dvb.frontend != NULL)
-			fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
+			fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_TBS_8921:
 		dev->ts_gen_cntrl = 0x04;
@@ -1581,7 +1578,7 @@ static int dvb_register(struct cx8802_dev *dev)
 		fe0->dvb.frontend = dvb_attach(tda10071_attach, &tbs_tda10071_config, &core->i2c_adap);
 
 		if (fe0->dvb.frontend != NULL)
-			fe0->dvb.frontend->ops.set_voltage = tevii_dvbs_set_voltage;
+			fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_TBS_8922:
 		dev->ts_gen_cntrl = 0x04;
@@ -1602,31 +1599,21 @@ static int dvb_register(struct cx8802_dev *dev)
 				goto frontend_detach;
 		}
 		break;
-	case CX88_BOARD_PROF_7301:{
-		struct dvb_tuner_ops *tuner_ops = NULL;
+	case CX88_BOARD_PROF_7301:
+		dev->ts_gen_cntrl = 0;
 
-		fe0->dvb.frontend = dvb_attach(stv0900_attach,
-						&prof_7301_stv0900_config,
-						&core->i2c_adap, 0);
+		fe0->dvb.frontend = dvb_attach(stv090x_attach,
+						&prof_7301_stv090x_config,
+						&core->i2c_adap, STV090x_DEMODULATOR_0);
 		if (fe0->dvb.frontend != NULL) {
 			if (!dvb_attach(stb6100_attach, fe0->dvb.frontend,
 					&prof_7301_stb6100_config,
 					&core->i2c_adap))
 				goto frontend_detach;
-
-			tuner_ops = &fe0->dvb.frontend->ops.tuner_ops;
-			tuner_ops->set_frequency = stb6100_set_freq;
-			tuner_ops->get_frequency = stb6100_get_freq;
-			tuner_ops->set_bandwidth = stb6100_set_bandw;
-			tuner_ops->get_bandwidth = stb6100_get_bandw;
-
-			core->prev_set_voltage =
-					fe0->dvb.frontend->ops.set_voltage;
 			fe0->dvb.frontend->ops.set_voltage =
-					tevii_dvbs_set_voltage;
+					tbs_dvbs_set_voltage;
 		}
 		break;
-		}
 	case CX88_BOARD_SAMSUNG_SMT_7020:
 		dev->ts_gen_cntrl = 0x08;
 
