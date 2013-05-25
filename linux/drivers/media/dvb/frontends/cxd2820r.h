@@ -83,6 +83,9 @@ struct cxd2820r_config {
 	u8 gpio_dvbt[3];
 	u8 gpio_dvbt2[3];
 	u8 gpio_dvbc[3];
+
+	/* Hook for Lock LED */
+	void (*set_lock_led)(struct dvb_frontend *fe, int offon);
 };
 
 

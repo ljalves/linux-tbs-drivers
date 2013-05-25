@@ -27,6 +27,7 @@
 /* on my own*/
 #define TBS5925_RC_QUERY (0x1a00)
 #define TBS5925_VOLTAGE_CTRL (0x1800)
+#define TBS5925_LED_CTRL (0x1b00)
 
 struct tbs5925_state {
 	u32 last_key_pressed;
@@ -133,7 +134,12 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			buf6[1] = msg[0].buf[0];
 			tbs5925_op_rw(d->udev, 0x8a, 0, 0,
 					buf6, 2, TBS5925_WRITE_MSG);
-			
+			break;
+		case (TBS5925_LED_CTRL):
+			buf6[0] = 5;
+			buf6[1] = msg[0].buf[0];
+			tbs5925_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBS5925_WRITE_MSG);
 			break;
 		}
 
@@ -147,6 +153,25 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 static u32 tbs5925_i2c_func(struct i2c_adapter *adapter)
 {
 	return I2C_FUNC_I2C;
+}
+
+static void tbs5925_led_ctrl(struct dvb_frontend *fe, int offon)
+{
+	static u8 led_off[] = { 0 };
+	static u8 led_on[] = { 1 };
+	struct i2c_msg msg = {
+		.addr = TBS5925_LED_CTRL,
+		.flags = 0,
+		.buf = led_off,
+		.len = 1
+	};
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+
+	if (offon)
+		msg.buf = led_on;
+	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
+	info("tbs5925_led_ctrl %d",offon);
 }
 
 static struct stv090x_config stv0900_config = {
@@ -166,6 +191,8 @@ static struct stv090x_config stv0900_config = {
 	.tuner_set_frequency    = stb6100_set_frequency,
 	.tuner_set_bandwidth    = stb6100_set_bandwidth,
 	.tuner_get_bandwidth    = stb6100_get_bandwidth,
+
+	.set_lock_led = tbs5925_led_ctrl,
 };
 
 static struct stb6100_config stb6100_config = {

@@ -25,8 +25,11 @@
 #include "ds3000.h"
 #include "stv0900.h"
 #include "stv6110.h"
-#include "stb6100.h"
 #include "stb6100_proc.h"
+#include "stv6110x.h"
+#include "stb6100.h"
+#include "stb6100_cfg.h"
+#include "stv090x.h"
 #include "m88rs2000.h"
 #include "ts2020.h"
 
@@ -582,9 +585,8 @@ static int s6x0_i2c_transfer(struct i2c_adapter *adap, struct i2c_msg msg[],
 				obuf[1] = (msg[j].addr << 1);
 				memcpy(obuf + 2, msg[j].buf, msg[j].len);
 				dw210x_op_rw(d->udev,
-						udev->descriptor.idProduct ==
-						0x7500 ? 0x92 : 0x90, 0, 0,
-						obuf, msg[j].len + 2,
+						(udev->descriptor.idProduct == 0x7500 && msg[j].addr != 0x50) ? 0x92 : 0x90,
+						0, 0, obuf, msg[j].len + 2,
 						DW210X_WRITE_MSG);
 				break;
 			} else {
@@ -921,6 +923,7 @@ static struct stv0299_config sharp_z0194a_config = {
 static struct cx24116_config dw2104_config = {
 	.demod_address = 0x55,
 	.mpg_clk_pos_pol = 0x01,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct si21xx_config serit_sp1511lhb_config = {
@@ -936,10 +939,12 @@ static struct tda10023_config dw3101_tda10023_config = {
 
 static struct mt312_config zl313_config = {
 	.demod_address = 0x0e,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct ds3000_config dw2104_ds3000_config = {
 	.demod_address = 0x68,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct stv0900_config dw2104a_stv0900_config = {
@@ -951,6 +956,7 @@ static struct stv0900_config dw2104a_stv0900_config = {
 	.tun1_maddress = 0,/* 0x60 */
 	.tun1_adc = 0,/* 2 Vpp */
 	.path1_mode = 3,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct stb6100_config dw2104a_stb6100_config = {
@@ -967,6 +973,7 @@ static struct stv0900_config dw2104_stv0900_config = {
 	.tun1_maddress = 0,
 	.tun1_adc = 1,/* 1 Vpp */
 	.path1_mode = 3,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct stv6110_config dw2104_stv6110_config = {
@@ -975,17 +982,28 @@ static struct stv6110_config dw2104_stv6110_config = {
 	.clk_div = 1,
 };
 
-static struct stv0900_config prof_7500_stv0900_config = {
-	.demod_address = 0x6a,
-	.demod_mode = 0,
-	.xtal = 27000000,
-	.clkmode = 3,/* 0-CLKI, 2-XTALI, else AUTO */
-	.diseqc_mode = 2,/* 2/3 PWM */
-	.tun1_maddress = 0,/* 0x60 */
-	.tun1_adc = 0,/* 2 Vpp */
-	.path1_mode = 3,
-	.tun1_type = 3,
+static struct stv090x_config prof_7500_stv090x_config = {
+        .device                 = STV0903,
+        .demod_mode             = STV090x_SINGLE,
+        .clk_mode               = STV090x_CLK_EXT,
+        .xtal                   = 27000000,
+        .address                = 0x6A,
+        .ts1_mode               = STV090x_TSMODE_PARALLEL_PUNCTURED,
+        .repeater_level         = STV090x_RPTLEVEL_64,
+        .adc1_range             = STV090x_ADC_2Vpp,
+        .diseqc_envelope_mode   = false,
+
+        .tuner_get_frequency    = stb6100_get_frequency,
+        .tuner_set_frequency    = stb6100_set_frequency,
+        .tuner_set_bandwidth    = stb6100_set_bandwidth,
+        .tuner_get_bandwidth    = stb6100_get_bandwidth,
+
 	.set_lock_led = dw210x_led_ctrl,
+};
+
+static struct stb6100_config prof_7500_stb6100_config = {
+	.tuner_address = 0x60,
+	.refclock = 27000000,
 };
 
 static struct ds3000_config su3000_ds3000_config = {
@@ -1014,6 +1032,7 @@ static u8 m88rs2000_inittab[] = {
 static struct m88rs2000_config s421_m88rs2000_config = {
 	.demod_addr = 0x68,
 	.inittab = m88rs2000_inittab,
+	.set_lock_led = dw210x_led_ctrl,
 };
 
 static struct ts2020_config s421_ts2020_config  = {
@@ -1197,18 +1216,21 @@ static int prof_7500_frontend_attach(struct dvb_usb_adapter *d)
 {
 	u8 obuf[] = {7, 1};
 
-	d->fe[0] = dvb_attach(stv0900_attach, &prof_7500_stv0900_config,
-					&d->dev->i2c_adap, 0);
-	if (d->fe[0] == NULL)
-		return -EIO;
+	d->fe[0] = dvb_attach(stv090x_attach,
+				&prof_7500_stv090x_config,
+				&d->dev->i2c_adap, STV090x_DEMODULATOR_0);
 
-	d->fe[0]->ops.set_voltage = dw210x_set_voltage;
+	if (d->fe[0] != NULL) {
+		if (dvb_attach(stb6100_attach, d->fe[0], &prof_7500_stb6100_config,
+				&d->dev->i2c_adap)) {
+			d->fe[0]->ops.set_voltage = dw210x_set_voltage;
+			dw210x_op_rw(d->dev->udev, 0x8a, 0, 0, obuf, 2, DW210X_WRITE_MSG);
+			info("Attached STV0900+STB6100A!\n");
+			return 0;
+		}
+	}
 
-	dw210x_op_rw(d->dev->udev, 0x8a, 0, 0, obuf, 2, DW210X_WRITE_MSG);
-
-	info("Attached STV0900+STB6100A!\n");
-
-	return 0;
+	return -EIO;
 }
 
 static int su3000_frontend_attach(struct dvb_usb_adapter *d)

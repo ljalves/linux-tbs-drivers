@@ -34,6 +34,7 @@
 /* on my own*/
 #define TBSQBOX_VOLTAGE_CTRL (0x1800)
 #define TBSQBOX_RC_QUERY (0x1a00)
+#define TBSQBOX_LED_CTRL (0x1b00)
 
 struct tbsqboxs2_state {
 	u32 last_key_pressed;
@@ -153,14 +154,18 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			//info("TBSQBOX_RC_QUERY %x %x %x %x\n",buf6[0],buf6[1],buf6[2],buf6[3]);
 			break;
 		}
-		case (TBSQBOX_VOLTAGE_CTRL): {
+		case (TBSQBOX_VOLTAGE_CTRL):
 			buf6[0] = 3;
 			buf6[1] = msg[0].buf[0];
 			tbsqboxs2_op_rw(d->udev, 0x8a, 0, 0,
 					buf6, 2, TBSQBOX_WRITE_MSG);
-			
 			break;
-		}
+		case (TBSQBOX_LED_CTRL):
+			buf6[0] = 5;
+			buf6[1] = msg[0].buf[0];
+			tbsqboxs2_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBSQBOX_WRITE_MSG);
+			break;
 		}
 
 		break;
@@ -175,16 +180,34 @@ static u32 tbsqboxs2_i2c_func(struct i2c_adapter *adapter)
 	return I2C_FUNC_I2C;
 }
 
-
-
 static struct i2c_algorithm tbsqboxs2_i2c_algo = {
 	.master_xfer = tbsqboxs2_i2c_transfer,
 	.functionality = tbsqboxs2_i2c_func,
 };
 
+static void tbsqboxs2_led_ctrl(struct dvb_frontend *fe, int offon)
+{
+	static u8 led_off[] = { 0 };
+	static u8 led_on[] = { 1 };
+	struct i2c_msg msg = {
+		.addr = TBSQBOX_LED_CTRL,
+		.flags = 0,
+		.buf = led_off,
+		.len = 1
+	};
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+
+	if (offon)
+		msg.buf = led_on;
+	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
+	info("tbsqboxs2_led_ctrl %d",offon);
+}
+
 static const struct cx24116_config qbox2_cx24116_config = {
 	.demod_address = 0x55,
 	.mpg_clk_pos_pol = 0x01,
+	.set_lock_led = tbsqboxs2_led_ctrl,
 };
 
 static int tbsqboxs2_read_mac_address(struct dvb_usb_device *d, u8 mac[6])

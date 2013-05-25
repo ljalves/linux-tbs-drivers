@@ -477,6 +477,9 @@ static int tda10071_read_status(struct dvb_frontend *fe, fe_status_t *status)
 	if (tmp & 0x08) /* RS or BCH */
 		*status |= FE_HAS_SYNC | FE_HAS_LOCK;
 
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, *status & FE_HAS_LOCK);
+
 	priv->fe_status = *status;
 
 	return ret;
@@ -1134,6 +1137,9 @@ static int tda10071_sleep(struct dvb_frontend *fe)
 		goto error;
 	}
 
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, 0);
+
 	cmd.args[0x00] = CMD_SET_SLEEP_MODE;
 	cmd.args[0x01] = 0;
 	cmd.args[0x02] = 1;
@@ -1168,6 +1174,8 @@ static int tda10071_get_tune_settings(struct dvb_frontend *fe,
 static void tda10071_release(struct dvb_frontend *fe)
 {
 	struct tda10071_priv *priv = fe->demodulator_priv;
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, 0);
 	kfree(priv);
 }
 

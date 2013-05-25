@@ -379,6 +379,9 @@ static int cxd2820r_read_status(struct dvb_frontend *fe, fe_status_t *status)
 		ret = cxd2820r_read_status_c(fe, status);
 	}
 
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, *status & FE_HAS_LOCK);
+
 	return ret;
 }
 
@@ -587,6 +590,9 @@ static int cxd2820r_sleep(struct dvb_frontend *fe)
 	int ret;
 	dbg("%s: delsys=%d", __func__, fe->dtv_property_cache.delivery_system);
 
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, 0);
+
 	if (fe->ops.info.type == FE_OFDM) {
 		/* DVB-T/T2 */
 		ret = cxd2820r_lock(priv, 0);
@@ -726,6 +732,9 @@ static void cxd2820r_release(struct dvb_frontend *fe)
 {
 	struct cxd2820r_priv *priv = fe->demodulator_priv;
 	dbg("%s", __func__);
+
+	if (priv->cfg.set_lock_led)
+		priv->cfg.set_lock_led(fe, 0);
 
 	if (fe->ops.info.type == FE_OFDM) {
 		i2c_del_adapter(&priv->tuner_i2c_adapter);

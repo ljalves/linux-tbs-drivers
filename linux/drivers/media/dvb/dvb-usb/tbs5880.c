@@ -24,6 +24,7 @@
 #define TBS5880_WRITE_MSG 1
 
 #define TBS5880_RC_QUERY (0x1a00)
+#define TBS5880_LED_CTRL (0x1b00)
 
 struct tbs5880_state {
 	struct dvb_ca_en50221 ca;
@@ -436,6 +437,12 @@ static int tbs5880_i2c_transfer(struct i2c_adapter *adap,
 			//info("TBS5880_RC_QUERY %x %x %x %x\n",
 			//		buf6[0],buf6[1],buf6[2],buf6[3]);
 			break;
+		case (TBS5880_LED_CTRL):
+			buf6[0] = 5;
+			buf6[1] = msg[0].buf[0];
+			tbs5880_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBS5880_WRITE_MSG);
+			break;
 		}
 
 		break;
@@ -487,6 +494,26 @@ static int tbs5880_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 	return 0;
 };
 
+static void tbs5880_led_ctrl(struct dvb_frontend *fe, int offon)
+{
+	static u8 led_off[] = { 0 };
+	static u8 led_on[] = { 1 };
+	struct i2c_msg msg = {
+		.addr = TBS5880_LED_CTRL,
+		.flags = 0,
+		.buf = led_off,
+		.len = 1
+	};
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+
+	if (offon)
+		msg.buf = led_on;
+	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
+	info("tbs5880_led_ctrl %d",offon);
+}
+
+
 static struct dvb_usb_device_properties tbs5880_properties;
 
 static struct cxd2820r_config cxd2820r_config = {
@@ -499,6 +526,8 @@ static struct cxd2820r_config cxd2820r_config = {
 	.if_dvbt2_7 = 4000,
 	.if_dvbt2_8 = 4000,
 	.if_dvbc = 5000,
+
+	.set_lock_led = tbs5880_led_ctrl,
 };
 
 static struct tda18212_config tda18212_config = {

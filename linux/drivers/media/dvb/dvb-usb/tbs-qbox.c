@@ -35,6 +35,7 @@
 /* on my own*/
 #define TBSQBOX_VOLTAGE_CTRL (0x1800)
 #define TBSQBOX_RC_QUERY (0x1a00)
+#define TBSQBOX_LED_CTRL (0x1b00)
 
 struct tbsqboxs1_state {
 	u32 last_key_pressed;
@@ -141,10 +142,14 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			buf6[1] = msg[0].buf[0];
 			tbsqboxs1_op_rw(d->udev, 0x8a, 0, 0,
 					buf6, 2, TBSQBOX_WRITE_MSG);
-			
+			break;
+		case (TBSQBOX_LED_CTRL):
+			buf6[0] = 5;
+			buf6[1] = msg[0].buf[0];
+			tbsqboxs1_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBSQBOX_WRITE_MSG);
 			break;
 		}
-
 		break;
 	}
 
@@ -157,8 +162,29 @@ static u32 tbsqboxs1_i2c_func(struct i2c_adapter *adapter)
 	return I2C_FUNC_I2C;
 }
 
+static void tbsqbox_led_ctrl(struct dvb_frontend *fe, int offon)
+{
+	static u8 led_off[] = { 0 };
+	static u8 led_on[] = { 1 };
+	struct i2c_msg msg = {
+		.addr = TBSQBOX_LED_CTRL,
+		.flags = 0,
+		.buf = led_off,
+		.len = 1
+	};
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+
+	if (offon)
+		msg.buf = led_on;
+	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
+	info("tbsqbox_led_ctrl %d",offon);
+}
+
+
 static struct stv0288_config earda_config = {
 	.demod_address = 0x68,
+	.set_lock_led = tbsqbox_led_ctrl,
 };
 
 static struct i2c_algorithm tbsqboxs1_i2c_algo = {

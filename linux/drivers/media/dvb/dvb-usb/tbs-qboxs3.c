@@ -33,6 +33,7 @@
 /* on my own*/
 #define TBSQBOX_VOLTAGE_CTRL (0x1800)
 #define TBSQBOX_RC_QUERY (0x1a00)
+#define TBSQBOX_LED_CTRL (0x1b00)
 
 struct tbsqboxs3_state {
 	u32 last_key_pressed;
@@ -100,7 +101,7 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 	}
 	case 1:
 		switch (msg[0].addr) {
-		case 0x55: {
+		case 0x55:
 			if (msg[0].buf[0] == 0xfa) {
 				/* firmware */
 				/* Write in small blocks */
@@ -129,8 +130,7 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 				//msleep(3);
 			}
 			break;
-		}
-		case 0x60: {
+		case 0x60:
 			/* write to register */
 			buf6[0] = msg[0].len+1;//lenth
 			buf6[1] = msg[0].addr<<1;//demod addr
@@ -140,10 +140,8 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			tbsqboxs3_op_rw(d->udev, 0x80, 0, 0,
 						buf6, msg[0].len+2, TBSQBOX_WRITE_MSG);
 			msleep(3);
-
 			break;
-		}
-		case (TBSQBOX_RC_QUERY): {
+		case (TBSQBOX_RC_QUERY):
 			tbsqboxs3_op_rw(d->udev, 0xb8, 0, 0,
 					buf6, 4, TBSQBOX_READ_MSG);
 			msg[0].buf[0] = buf6[2];
@@ -151,15 +149,18 @@ struct dvb_usb_device *d = i2c_get_adapdata(adap);
 			msleep(3);
 			//info("TBSQBOX_RC_QUERY %x %x %x %x\n",buf6[0],buf6[1],buf6[2],buf6[3]);
 			break;
-		}
-		case (TBSQBOX_VOLTAGE_CTRL): {
+		case (TBSQBOX_VOLTAGE_CTRL):
 			buf6[0] = 3;
 			buf6[1] = msg[0].buf[0];
 			tbsqboxs3_op_rw(d->udev, 0x8a, 0, 0,
 					buf6, 2, TBSQBOX_WRITE_MSG);
-
 			break;
-		}
+		case (TBSQBOX_LED_CTRL):
+			buf6[0] = 5;
+			buf6[1] = msg[0].buf[0];
+			tbsqboxs3_op_rw(d->udev, 0x8a, 0, 0,
+					buf6, 2, TBSQBOX_WRITE_MSG);
+			break;
 		}
 
 		break;
@@ -174,12 +175,29 @@ static u32 tbsqboxs3_i2c_func(struct i2c_adapter *adapter)
 	return I2C_FUNC_I2C;
 }
 
-
-
 static struct i2c_algorithm tbsqboxs3_i2c_algo = {
 	.master_xfer = tbsqboxs3_i2c_transfer,
 	.functionality = tbsqboxs3_i2c_func,
 };
+
+static void tbsqboxs2_led_ctrl(struct dvb_frontend *fe, int offon)
+{
+	static u8 led_off[] = { 0 };
+	static u8 led_on[] = { 1 };
+	struct i2c_msg msg = {
+		.addr = TBSQBOX_LED_CTRL,
+		.flags = 0,
+		.buf = led_off,
+		.len = 1
+	};
+	struct dvb_usb_adapter *udev_adap =
+		(struct dvb_usb_adapter *)(fe->dvb->priv);
+
+	if (offon)
+		msg.buf = led_on;
+	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
+	info("tbsqboxs3_led_ctrl %d",offon);
+}
 
 static const struct tda10071_config tbs_tda10071_config = {
 	.i2c_address = 0x55, /* (0xaa >> 1) */
@@ -188,6 +206,8 @@ static const struct tda10071_config tbs_tda10071_config = {
 	.spec_inv = 0,
 	.xtal = 40444000, /* 40.444 MHz */
 	.pll_multiplier = 20,
+
+	.set_lock_led = tbsqboxs2_led_ctrl,
 };
 
 static int tbsqboxs3_read_mac_address(struct dvb_usb_device *d, u8 mac[6])

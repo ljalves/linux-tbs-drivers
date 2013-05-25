@@ -342,6 +342,8 @@ static int mt312_send_master_cmd(struct dvb_frontend *fe,
 	int ret;
 	u8 diseqc_mode;
 
+	dprintk("%s: \n", __func__);
+
 	if ((c->msg_len == 0) || (c->msg_len > sizeof(c->msg)))
 		return -EINVAL;
 
@@ -380,6 +382,8 @@ static int mt312_send_burst(struct dvb_frontend *fe, const fe_sec_mini_cmd_t c)
 	int ret;
 	u8 diseqc_mode;
 
+	dprintk("%s: %d\n", __func__, c);
+
 	if (c > SEC_MINI_B)
 		return -EINVAL;
 
@@ -403,6 +407,8 @@ static int mt312_set_tone(struct dvb_frontend *fe, const fe_sec_tone_mode_t t)
 	int ret;
 	u8 diseqc_mode;
 
+	dprintk("%s: %d\n", __func__, t);
+
 	if (t > SEC_TONE_OFF)
 		return -EINVAL;
 
@@ -423,6 +429,8 @@ static int mt312_set_voltage(struct dvb_frontend *fe, const fe_sec_voltage_t v)
 	struct mt312_state *state = fe->demodulator_priv;
 	const u8 volt_tab[3] = { 0x00, 0x40, 0x00 };
 	u8 val;
+
+	dprintk("%s: %d\n", __func__, v);
 
 	if (v > SEC_VOLTAGE_OFF)
 		return -EINVAL;
@@ -459,6 +467,9 @@ static int mt312_read_status(struct dvb_frontend *fe, fe_status_t *s)
 		*s |= FE_HAS_SYNC;	/* byte align lock */
 	if (status[0] & 0x01)
 		*s |= FE_HAS_LOCK;	/* qpsk lock */
+
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, *s & FE_HAS_LOCK);
 
 	return 0;
 }
@@ -692,6 +703,9 @@ static int mt312_sleep(struct dvb_frontend *fe)
 	int ret;
 	u8 config;
 
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, 0);
+
 	/* reset all registers to defaults */
 	ret = mt312_reset(state, 1);
 	if (ret < 0)
@@ -733,6 +747,8 @@ static int mt312_get_tune_settings(struct dvb_frontend *fe,
 static void mt312_release(struct dvb_frontend *fe)
 {
 	struct mt312_state *state = fe->demodulator_priv;
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, 0);
 	kfree(state);
 }
 

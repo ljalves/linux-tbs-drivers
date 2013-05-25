@@ -101,6 +101,8 @@ struct stv090x_config {
 	int (*tuner_set_refclk)  (struct dvb_frontend *fe, u32 refclk);
 	int (*tuner_get_status) (struct dvb_frontend *fe, u32 *status);
 	void (*tuner_i2c_lock) (struct dvb_frontend *fe, int lock);
+	/* Hook for Lock LED */
+	void (*set_lock_led)(struct dvb_frontend *fe, int offon);
 
 	/* Konstantin Dimitrov <kosio.dimitrov@gmail.com>: other tuner */
 	u8 agc_rf1;

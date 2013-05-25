@@ -34,6 +34,8 @@ struct mt312_config {
 
 	/* inverted voltage setting */
 	unsigned int voltage_inverted:1;
+	/* Hook for Lock LED */
+	void (*set_lock_led)(struct dvb_frontend *fe, int offon);
 };
 
 #if defined(CONFIG_DVB_MT312) || (defined(CONFIG_DVB_MT312_MODULE) && defined(MODULE))

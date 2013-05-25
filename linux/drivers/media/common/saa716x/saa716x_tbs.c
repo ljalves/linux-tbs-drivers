@@ -3668,7 +3668,8 @@ static struct saa716x_config saa716x_tt_s2_4100_config = {
 	.adapters		= 1,
 	.frontend_attach	= saa716x_tt_s2_4100_frontend_attach,
 	.irq_handler		= saa716x_tt_s2_4100_pci_irq,
-	.i2c_rate		= SAA716x_I2C_RATE_100,
+	.i2c_rate[0]		= SAA716x_I2C_RATE_100,
+	.i2c_rate[1]            = SAA716x_I2C_RATE_100,
 	.adap_config		= {
 		{
 			/* adapter 0 */

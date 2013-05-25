@@ -506,6 +506,9 @@ static int ds3000_read_status(struct dvb_frontend *fe, fe_status_t* status)
 		return 1;
 	}
 
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, *status & FE_HAS_LOCK);
+
 	dprintk("%s: status = 0x%02x\n", __func__, lock);
 
 	return 0;
@@ -887,6 +890,8 @@ static void ds3000_release(struct dvb_frontend *fe)
 {
 	struct ds3000_state *state = fe->demodulator_priv;
 	dprintk("%s\n", __func__);
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, 0);
 	kfree(state);
 }
 
@@ -1274,7 +1279,10 @@ static int ds3000_initfe(struct dvb_frontend *fe)
 /* Put device to sleep */
 static int ds3000_sleep(struct dvb_frontend *fe)
 {
+	struct ds3000_state *state = fe->demodulator_priv;
 	dprintk("%s()\n", __func__);
+	if (state->config->set_lock_led)
+		state->config->set_lock_led(fe, 0);
 	return 0;
 }
 
