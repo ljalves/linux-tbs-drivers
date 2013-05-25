@@ -33,7 +33,8 @@
 #include "s5h1411.h"
 #include "lgdt3305.h"
 #include "mb86a20s.h"
-#include "tbs5280fe.h"
+#include "tda18212.h"
+#include "cxd2820r.h"
 
 MODULE_DESCRIPTION("driver for cx231xx based DVB cards");
 MODULE_AUTHOR("Srinivasa Deevi <srinivasa.deevi@conexant.com>");
@@ -179,20 +180,54 @@ void tbs5280ctrl3(struct cx231xx *dev, int type, u32 val)
 		dev->gpio_val = val;
 }
 
-static struct tbs5280fe_config tbs5280fe_config0 = {
-	.tbs5280fe_address = 0x6c,
-
-	.tbs5280_ctrl1 = tbs5280ctrl1,
-	.tbs5280_ctrl2 = tbs5280ctrl2,
-	.tbs5280_ctrl3 = tbs5280ctrl3,
+static struct cxd2820r_config cxd2820r_config0 = {
+	.i2c_address = 0x6c, /* (0xd8 >> 1) */
+	.ts_mode = 0x08,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
 };
 
-static struct tbs5280fe_config tbs5280fe_config1 = {
-	.tbs5280fe_address = 0x6d,
+static struct cxd2820r_config cxd2820r_config1 = {
+	.i2c_address = 0x6d, /* (0xda >> 1) */
+	.ts_mode = 0x08,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+};
 
-	.tbs5280_ctrl1 = tbs5280ctrl1,
-	.tbs5280_ctrl2 = tbs5280ctrl2,
-	.tbs5280_ctrl3 = tbs5280ctrl3,
+static struct tda18212_config tda18212_config0 = {
+	.i2c_address = 0x60 /* (0xc0 >> 1) */,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+	.loop_through = 1,
+	.xtout = 1
+};
+
+static struct tda18212_config tda18212_config1 = {
+	.i2c_address = 0x63 /* (0xc6 >> 1) */,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+	.loop_through = 0,
+	.xtout = 0
 };
 
 static inline void print_err_status(struct cx231xx *dev, int packet, int status)
@@ -828,9 +863,8 @@ static int dvb_init(struct cx231xx *dev)
 		break;
 	case CX231XX_BOARD_TBS_5280:
 
-		dev->dvb[i]->frontend = dvb_attach(tbs5280fe_attach,
-						i ? &tbs5280fe_config1 : &tbs5280fe_config0,
-						&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap);
+		dev->dvb[i]->frontend = dvb_attach(cxd2820r_attach, i ? &cxd2820r_config1 : &cxd2820r_config0,
+						&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, NULL);
 
 		if (dev->dvb[i]->frontend == NULL) {
 			printk(DRIVER_NAME
@@ -842,6 +876,8 @@ static int dvb_init(struct cx231xx *dev)
 		/* define general-purpose callback pointer */
 		dvb->frontend->callback = cx231xx_tuner_callback;
 
+		dvb_attach(tda18212_attach, dev->dvb[i]->frontend,
+			&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, i ? &tda18212_config1 : &tda18212_config0);
 		break;
 	
 	default:
