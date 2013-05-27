@@ -376,6 +376,8 @@ config DVB_USB_DW2102
 	select DVB_TS2020 if !DVB_FE_CUSTOMISE
 	select DVB_M88RS2000 if !DVB_FE_CUSTOMISE
 	select DVB_M88DS3103 if !DVB_FE_CUSTOMISE
+	select DVB_CXD2820R if !DVB_FE_CUSTOMISE
+	select DVB_TDA18271 if !DVB_FE_CUSTOMISE
 	help
 	  Say Y here to support the DvbWorld, TeVii, Prof, Geniatech, DVBSky DVB-S/S2 USB2.0
 	  receivers.

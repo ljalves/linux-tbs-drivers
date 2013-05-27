@@ -33,7 +33,7 @@
 #include "m88rs2000.h"
 #include "ts2020.h"
 #include "m88ds3103.h"
-#include "tda18212.h"
+#include "tda18271.h"
 #include "cxd2820r.h"
 
 #ifndef USB_PID_DW2102
@@ -1086,25 +1086,18 @@ static struct ds3000_config su3000_ds3000_config = {
 
 static struct cxd2820r_config cxd2820r_config = {
 	.i2c_address = 0x6c, /* (0xd8 >> 1) */
-	.ts_mode = 0x08,
-	.if_dvbt_6 = 3550,
-	.if_dvbt_7 = 3700,
-	.if_dvbt_8 = 4150,
-	.if_dvbt2_6 = 3250,
-	.if_dvbt2_7 = 4000,
+	.ts_mode = CXD2820R_TS_PARALLEL,
+	.if_dvbt_6  = 3300,
+	.if_dvbt_7  = 3500,
+	.if_dvbt_8  = 4000,
+	.if_dvbt2_6 = 3300,
+	.if_dvbt2_7 = 3500,
 	.if_dvbt2_8 = 4000,
-	.if_dvbc = 5000,
+	.if_dvbc    = 5000,
 };
 
-static struct tda18212_config tda18212_config = {
-	.i2c_address = 0x60 /* (0xc0 >> 1) */,
-	.if_dvbt_6 = 3550,
-	.if_dvbt_7 = 3700,
-	.if_dvbt_8 = 4150,
-	.if_dvbt2_6 = 3250,
-	.if_dvbt2_7 = 4000,
-	.if_dvbt2_8 = 4000,
-	.if_dvbc = 5000,
+static struct tda18271_config tda18271_config = {
+	.output_opt = TDA18271_OUTPUT_LT_OFF,
 };
 
 static u8 m88rs2000_inittab[] = {
@@ -1417,13 +1410,13 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 	if (d->fe[0] == NULL)
 		return -EIO;
 
-	if (dvb_attach(tda18212_attach, d->fe[0], &d->dev->i2c_adap,
-			&tda18212_config)) {
-		info("Attached TDA18212/CXD2820R!\n");
+	if (dvb_attach(tda18271_attach, d->fe[0], 0x60,
+			&d->dev->i2c_adap, &tda18271_config)) {
+		info("Attached TDA18271/CXD2820R!\n");
 		return 0;
 	}
 
-	info("Failed to attach TDA18212/CXD2820R!\n");
+	info("Failed to attach TDA18271/CXD2820R!\n");
 	return -EIO;
 }
 
