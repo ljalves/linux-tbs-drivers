@@ -372,10 +372,11 @@ config DVB_USB_DW2102
 	select DVB_STB6100 if !DVB_FE_CUSTOMISE
 	select DVB_STV6110 if !DVB_FE_CUSTOMISE
 	select DVB_STV0900 if !DVB_FE_CUSTOMISE
-	select DVB_TS2020 if MEDIA_SUBDRV_AUTOSELECT
-	select DVB_M88RS2000 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TS2020 if !DVB_FE_CUSTOMISE
+	select DVB_M88RS2000 if !DVB_FE_CUSTOMISE
+	select DVB_M88DS3103 if !DVB_FE_CUSTOMISE
 	help
-	  Say Y here to support the DvbWorld, TeVii, Prof DVB-S/S2 USB2.0
+	  Say Y here to support the DvbWorld, TeVii, Prof, Geniatech, DVBSky DVB-S/S2 USB2.0
 	  receivers.
 
 config DVB_USB_CINERGY_T2
