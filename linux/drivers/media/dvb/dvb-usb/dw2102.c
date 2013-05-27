@@ -2,7 +2,7 @@
  *	DVBWorld DVB-S 2101, 2102, DVB-S2 2104, DVB-C 3101,
  *	TeVii S600, S630, S650, S660, S480, S421, S632
  *	Prof 1100, 7500,
- *	Geniatech SU3000 Cards
+ *	Geniatech SU3000, T220 Cards
  * Copyright (C) 2008-2011 Igor M. Liplianin (liplianin@me.by)
  *
  *	This program is free software; you can redistribute it and/or modify it
@@ -33,6 +33,8 @@
 #include "m88rs2000.h"
 #include "ts2020.h"
 #include "m88ds3103.h"
+#include "tda18212.h"
+#include "cxd2820r.h"
 
 #ifndef USB_PID_DW2102
 #define USB_PID_DW2102 0x2102
@@ -1082,6 +1084,29 @@ static struct ds3000_config su3000_ds3000_config = {
 	.ci_mode = 1,
 };
 
+static struct cxd2820r_config cxd2820r_config = {
+	.i2c_address = 0x6c, /* (0xd8 >> 1) */
+	.ts_mode = 0x08,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+};
+
+static struct tda18212_config tda18212_config = {
+	.i2c_address = 0x60 /* (0xc0 >> 1) */,
+	.if_dvbt_6 = 3550,
+	.if_dvbt_7 = 3700,
+	.if_dvbt_8 = 4150,
+	.if_dvbt2_6 = 3250,
+	.if_dvbt2_7 = 4000,
+	.if_dvbt2_8 = 4000,
+	.if_dvbc = 5000,
+};
+
 static u8 m88rs2000_inittab[] = {
 	DEMOD_WRITE, 0x9a, 0x30,
 	DEMOD_WRITE, 0x00, 0x01,
@@ -1357,6 +1382,49 @@ static int su3000_frontend_attach(struct dvb_usb_adapter *d)
 	info("Attached DS3000!\n");
 
 	return 0;
+}
+
+static int t220_frontend_attach(struct dvb_usb_adapter *d)
+{
+	u8 obuf[3] = { 0xe, 0x80, 0 };
+	u8 ibuf[] = { 0 };
+
+	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
+		err("command 0x0e transfer failed.");
+
+	obuf[0] = 0xe;
+	obuf[1] = 0x83;
+	obuf[2] = 0;
+
+	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
+		err("command 0x0e transfer failed.");
+
+	obuf[0] = 0xe;
+	obuf[1] = 0x83;
+	obuf[2] = 1;
+
+	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
+		err("command 0x0e transfer failed.");
+
+	obuf[0] = 0x51;
+
+	if (dvb_usb_generic_rw(d->dev, obuf, 1, ibuf, 1, 0) < 0)
+		err("command 0x51 transfer failed.");
+
+	d->fe[0] = dvb_attach(cxd2820r_attach, &cxd2820r_config,
+				&d->dev->i2c_adap, NULL);
+
+	if (d->fe[0] == NULL)
+		return -EIO;
+
+	if (dvb_attach(tda18212_attach, d->fe[0], &d->dev->i2c_adap,
+			&tda18212_config)) {
+		info("Attached TDA18212/CXD2820R!\n");
+		return 0;
+	}
+
+	info("Failed to attach TDA18212/CXD2820R!\n");
+	return -EIO;
 }
 
 static int m88rs2000_frontend_attach(struct dvb_usb_adapter *d)
@@ -1740,6 +1808,7 @@ enum dw2102_table_entry {
 	X3M_SPC1400HD,
 	TEVII_S421,
 	TEVII_S632,
+	GENIATECH_T220,
 	BST_US6830HD,
 	BST_US6831HD,
 	BST_US6832HD,
@@ -1761,6 +1830,7 @@ static struct usb_device_id dw2102_table[] = {
 	[TEVII_S480_1] = {USB_DEVICE(0x9022, USB_PID_TEVII_S480_1)},
 	[TEVII_S480_2] = {USB_DEVICE(0x9022, USB_PID_TEVII_S480_2)},
 	[X3M_SPC1400HD] = {USB_DEVICE(0x1f4d, 0x3100)},
+	[GENIATECH_T220] = {USB_DEVICE(0x1f4d, 0xD220)},
 	[TEVII_S421] = {USB_DEVICE(0x9022, USB_PID_TEVII_S421)},
 	[TEVII_S632] = {USB_DEVICE(0x9022, USB_PID_TEVII_S632)},
 	[BST_US6830HD] = {USB_DEVICE(0x0572, 0x6830)},
@@ -2169,7 +2239,7 @@ static struct dvb_usb_device_properties su3000_properties = {
 	}
 };
 
-static struct dvb_usb_device_properties US6830_properties = {
+static struct dvb_usb_device_properties t220_properties = {
 	.caps = DVB_USB_IS_AN_I2C_ADAPTER,
 	.usb_ctrl = DEVICE_SPECIFIC,
 	.size_of_priv = sizeof(struct su3000_state),
@@ -2180,6 +2250,51 @@ static struct dvb_usb_device_properties US6830_properties = {
 
 	.rc.legacy = {
 		.rc_map_table = rc_map_su3000_table,
+		.rc_map_size = ARRAY_SIZE(rc_map_su3000_table),
+		.rc_interval = 150,
+		.rc_query = dw2102_rc_query,
+	},
+
+	.read_mac_address = su3000_read_mac_address,
+
+	.generic_bulk_ctrl_endpoint = 0x01,
+
+	.adapter = {
+		{
+			.streaming_ctrl   = su3000_streaming_ctrl,
+			.frontend_attach  = t220_frontend_attach,
+			.stream = {
+				.type = USB_BULK,
+				.count = 8,
+				.endpoint = 0x82,
+				.u = {
+					.bulk = {
+						.buffersize = 4096,
+					}
+				}
+			}
+		}
+	},
+	.num_device_descs = 3,
+	.devices = {
+		{ "Geniatech T220 DVB-T/T2 USB2.0",
+			{ &dw2102_table[GENIATECH_T220], NULL },
+			{ NULL },
+		},
+	}
+};
+
+static struct dvb_usb_device_properties US6830_properties = {
+	.caps = DVB_USB_IS_AN_I2C_ADAPTER,
+	.usb_ctrl = DEVICE_SPECIFIC,
+	.size_of_priv = sizeof(struct su3000_state),
+	.power_ctrl = su3000_power_ctrl,
+	.num_adapters = 1,
+	.identify_state	= su3000_identify_state,
+	.i2c_algo = &su3000_i2c_algo,
+
+	.rc.legacy = {
+		.rc_map_table = rc_map_dvbsky_table,
 		.rc_map_size = ARRAY_SIZE(rc_map_dvbsky_table),
 		.rc_interval = 150,
 		.rc_query = dw2102_rc_query,
@@ -2228,7 +2343,7 @@ static struct dvb_usb_device_properties US6832_properties = {
 	.i2c_algo = &su3000_i2c_algo,
 
 	.rc.legacy = {
-		.rc_map_table = rc_map_su3000_table,
+		.rc_map_table = rc_map_dvbsky_table,
 		.rc_map_size = ARRAY_SIZE(rc_map_dvbsky_table),
 		.rc_interval = 150,
 		.rc_query = dw2102_rc_query,
@@ -2339,6 +2454,8 @@ static int dw2102_probe(struct usb_interface *intf,
 			THIS_MODULE, NULL, adapter_nr) ||
 	    0 == dvb_usb_device_init(intf, &su3000_properties,
 			THIS_MODULE, NULL, adapter_nr) ||
+	    0 == dvb_usb_device_init(intf, &t220_properties,
+			THIS_MODULE, NULL, adapter_nr) ||
 	    0 == dvb_usb_device_init(intf, &US6830_properties,
 			THIS_MODULE, NULL, adapter_nr) ||
 	    0 == dvb_usb_device_init(intf, &US6832_properties,
@@ -2377,6 +2494,6 @@ MODULE_DESCRIPTION("Driver for DVBWorld DVB-S 2101, 2102, DVB-S2 2104,"
 				" DVB-C 3101 USB2.0,"
 				" TeVii S600, S630, S650, S660, S480, S421, S632"
 				" Prof 1100, 7500 USB2.0,"
-				" Geniatech SU3000 devices");
+				" Geniatech SU3000, T220 devices");
 MODULE_VERSION("0.1");
 MODULE_LICENSE("GPL");

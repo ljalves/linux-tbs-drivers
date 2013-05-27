@@ -293,7 +293,7 @@ static int ts2020_set_tuner_rf(struct dvb_frontend *fe, u8 *rfgain)
 	return reg;
 }
 
-static int ts2020_set_params(struct dvb_frontend *fe)
+static int ts2020_set_params(struct dvb_frontend *fe, struct dvb_frontend_parameters *params)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct ts2020_priv *priv = fe->tuner_priv;

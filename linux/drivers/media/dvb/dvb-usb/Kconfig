@@ -252,7 +252,7 @@ config DVB_USB_TBSQBOXS2
 config DVB_USB_TBSQBOXS3
 	tristate "TurboSight QBOX3 DVB-S2 USB2.0 support"
 	depends on DVB_USB
-	select DVB_TBS5921FE if !DVB_FE_CUSTOMISE
+	select DVB_TDA10071 if !DVB_FE_CUSTOMISE
 	select DVB_PLL if !DVB_FE_CUSTOMISE
 	help
 	  Say Y here to support the TurboSight QBOX3 DVB-S USB2.0 receivers
@@ -268,7 +268,8 @@ config DVB_USB_TBSQBOX22
 config DVB_USB_TBS5880
 	tristate "TurboSight TBS5880 DVB-T/T2/C USB2.0 support"
 	depends on DVB_USB
-	select DVB_TBS5880FE if !DVB_FE_CUSTOMISE
+	select DVB_CXD2820R if !DVB_FE_CUSTOMISE
+	select DVB_TDA18212 if !DVB_FE_CUSTOMISE
 	select DVB_PLL if !DVB_FE_CUSTOMISE
 	help
 	  Say Y here to support the TurboSight TBS5880 DVB-T/T2/C USB2.0 receivers
