@@ -1407,16 +1407,16 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 	d->fe[0] = dvb_attach(cxd2820r_attach, &cxd2820r_config,
 				&d->dev->i2c_adap, NULL);
 
-	if (d->fe[0] == NULL)
-		return -EIO;
-
-	if (dvb_attach(tda18271_attach, d->fe[0], 0x60,
-			&d->dev->i2c_adap, &tda18271_config)) {
-		info("Attached TDA18271/CXD2820R!\n");
-		return 0;
+	if (d->fe[0] != NULL) {
+		struct i2c_adapter *i2c_tuner;
+		i2c_tuner = cxd2820r_get_tuner_i2c_adapter(d->fe[0]);
+		if (dvb_attach(tda18271_attach, d->fe[0], 0x60,
+			i2c_tuner, &tda18271_config)) {
+			info("Attached TDA18271HD/CXD2820R!\n");
+			return 0;
+		}
 	}
 
-	info("Failed to attach TDA18271/CXD2820R!\n");
 	return -EIO;
 }
 
