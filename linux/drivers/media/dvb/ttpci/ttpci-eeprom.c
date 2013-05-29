@@ -85,6 +85,13 @@ static int getmac_tt(u8 * decodedMAC, u8 * encodedMAC)
 	return 0;
 }
 
+int ttpci_eeprom_decode_mac(u8 *decodedMAC, u8 *encodedMAC)
+{
+	return getmac_tt(decodedMAC, encodedMAC);
+}
+
+EXPORT_SYMBOL(ttpci_eeprom_decode_mac);
+
 static int ttpci_eeprom_read_encodedMAC(struct i2c_adapter *adapter, u8 * encodedMAC)
 {
 	int ret;
@@ -104,7 +111,6 @@ static int ttpci_eeprom_read_encodedMAC(struct i2c_adapter *adapter, u8 * encode
 
 	return 0;
 }
-
 
 int ttpci_eeprom_parse_mac(struct i2c_adapter *adapter, u8 *proposed_mac)
 {
