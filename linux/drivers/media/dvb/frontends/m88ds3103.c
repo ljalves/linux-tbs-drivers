@@ -448,7 +448,7 @@ static int m88ds3103_read_snr(struct dvb_frontend *fe, u16 *p_snr)
 		tmp = (u16)(snr_total/80);
 		if(tmp > 0){
 			if (tmp > 32) tmp = 32;
-			snr = (mes_loge[tmp - 1] * 100) / 45;
+			snr = mes_loge[tmp - 1]*3;
 		}else{
 			snr = 0;
 		}
@@ -473,7 +473,7 @@ static int m88ds3103_read_snr(struct dvb_frontend *fe, u16 *p_snr)
 			if(spow > npow){
 				tmp = (u16)(spow / npow);
 				if (tmp > 80) tmp = 80;
-				snr = mes_log10[tmp - 1]*3;
+				snr = mes_log10[tmp - 1]*4;
 			}else{
 				tmp = (u16)(npow / spow);
 				if (tmp > 80) tmp = 80;
