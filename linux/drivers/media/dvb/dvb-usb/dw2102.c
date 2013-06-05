@@ -1406,6 +1406,16 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 		if (dvb_attach(tda18271_attach, d->fe[0], 0x60,
 			i2c_tuner, &tda18271_config)) {
 			info("Attached TDA18271HD/CXD2820R!\n");
+			/* FE 1. This dvb_attach() cannot fail. */
+			d->fe[1] = dvb_attach(cxd2820r_attach, NULL, NULL,
+				d->fe[0]);
+			d->fe[1]->id = 1;
+			/* FE 1 attach tuner */
+			if (!dvb_attach(tda18271_attach, d->fe[1], 0x60,
+				i2c_tuner, &tda18271_config)) {
+				dvb_frontend_detach(d->fe[1]);
+				/* leave FE 0 still active */
+			}
 			return 0;
 		}
 	}
