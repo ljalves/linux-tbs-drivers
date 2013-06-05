@@ -2271,7 +2271,7 @@ static struct dvb_usb_device_properties t220_properties = {
 			}
 		}
 	},
-	.num_device_descs = 3,
+	.num_device_descs = 1,
 	.devices = {
 		{ "Geniatech T220 DVB-T/T2 USB2.0",
 			{ &dw2102_table[GENIATECH_T220], NULL },
