@@ -1626,7 +1626,7 @@ static enum dvbfe_search stv0900_search(struct dvb_frontend *fe,
 	if (state->config->set_ts_params)
 		state->config->set_ts_params(fe, 0);
 
-	stv0900_set_pls(intp, demod, (c->dvbt2_plp_id>>24) & 0x3, (c->dvbt2_plp_id>>8) & 0x3FFFF);
+	stv0900_set_pls(intp, demod, (c->dvbt2_plp_id>>26) & 0x3, (c->dvbt2_plp_id>>8) & 0x3FFFF);
 	stv0900_set_mis(intp, demod, c->dvbt2_plp_id);
 
 	p_result.locked = FALSE;

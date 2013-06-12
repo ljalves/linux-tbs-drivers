@@ -3496,7 +3496,7 @@ static enum dvbfe_search stv090x_search(struct dvb_frontend *fe, struct dvb_fron
 		state->search_range = 5000000;
 	}
 
-	stv090x_set_pls(state, (props->dvbt2_plp_id>>24) & 0x3, (props->dvbt2_plp_id>>8) & 0x3FFFF);
+	stv090x_set_pls(state, (props->dvbt2_plp_id>>26) & 0x3, (props->dvbt2_plp_id>>8) & 0x3FFFF);
 	stv090x_set_mis(state, props->dvbt2_plp_id);
 
 	if (stv090x_algo(state) == STV090x_RANGEOK) {
