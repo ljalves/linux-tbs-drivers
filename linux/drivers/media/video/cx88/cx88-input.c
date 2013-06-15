@@ -382,6 +382,7 @@ int cx88_ir_init(struct cx88_core *core, struct pci_dev *pci)
 	case CX88_BOARD_TEVII_S464:
 	case CX88_BOARD_TEVII_S460:
 	case CX88_BOARD_TEVII_S420:
+	case CX88_BOARD_SB_540:
 		ir_codes = RC_MAP_TEVII_NEC;
 		ir->sampling = 0xff00; /* address */
 		break;

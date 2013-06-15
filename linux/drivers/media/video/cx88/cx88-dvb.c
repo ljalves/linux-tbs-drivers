@@ -1526,6 +1526,7 @@ static int dvb_register(struct cx8802_dev *dev)
 			fe0->dvb.frontend->ops.set_voltage = tbs_dvbs_set_voltage;
 		break;
 	case CX88_BOARD_TEVII_S464:
+	case CX88_BOARD_SB_540:
 		fe0->dvb.frontend = dvb_attach(ds3000_attach,
 						&tevii_ds3000_config,
 						&core->i2c_adap);

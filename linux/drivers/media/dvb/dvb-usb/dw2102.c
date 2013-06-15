@@ -1,6 +1,7 @@
 /* DVB USB framework compliant Linux driver for the
  *	DVBWorld DVB-S 2101, 2102, DVB-S2 2104, DVB-C 3101,
- *	TeVii S600, S630, S650, S660, S480, S421, S632
+ *	TeVii S600, S630, S650, S660, S480, S421, S632,
+ *	StarBlazer SB340,
  *	Prof 1100, 7500,
  *	Geniatech SU3000, T220 Cards
  * Copyright (C) 2008-2011 Igor M. Liplianin (liplianin@me.by)
@@ -1796,6 +1797,7 @@ enum dw2102_table_entry {
 	TEVII_S630,
 	PROF_1100,
 	TEVII_S660,
+	STARBLAZER_SB340,
 	PROF_7500,
 	GENIATECH_SU3000,
 	TERRATEC_CINERGY_S2,
@@ -1820,6 +1822,7 @@ static struct usb_device_id dw2102_table[] = {
 	[TEVII_S630] = {USB_DEVICE(0x9022, USB_PID_TEVII_S630)},
 	[PROF_1100] = {USB_DEVICE(0x3011, USB_PID_PROF_1100)},
 	[TEVII_S660] = {USB_DEVICE(0x9022, USB_PID_TEVII_S660)},
+	[STARBLAZER_SB340] = {USB_DEVICE(0x9022, 0xd662)},
 	[PROF_7500] = {USB_DEVICE(0x3034, 0x7500)},
 	[GENIATECH_SU3000] = {USB_DEVICE(0x1f4d, 0x3000)},
 	[TERRATEC_CINERGY_S2] = {USB_DEVICE(USB_VID_TERRATEC, 0x00a8)},
@@ -2150,6 +2153,7 @@ static struct dvb_usb_device_description d660 = {
 	{NULL},
 };
 
+
 static struct dvb_usb_device_description d480_1 = {
 	"TeVii S480.1 USB",
 	{&dw2102_table[TEVII_S480_1], NULL},
@@ -2159,6 +2163,13 @@ static struct dvb_usb_device_description d480_1 = {
 static struct dvb_usb_device_description d480_2 = {
 	"TeVii S480.2 USB",
 	{&dw2102_table[TEVII_S480_2], NULL},
+	{NULL},
+};
+
+struct dvb_usb_device_properties *sb340;
+static struct dvb_usb_device_description d662 = {
+	"StarBlazer SB340 USB",
+	{&dw2102_table[STARBLAZER_SB340], NULL},
 	{NULL},
 };
 
@@ -2404,6 +2415,18 @@ static int dw2102_probe(struct usb_interface *intf,
 	s660->devices[2] = d480_2;
 	s660->adapter->frontend_attach = ds3000_frontend_attach;
 
+	sb340 = kzalloc(sizeof(struct dvb_usb_device_properties), GFP_KERNEL);
+	if (!sb340) {
+		kfree(p1100);
+		return -ENOMEM;
+	}
+	memcpy(sb340, &s6x0_properties,
+			sizeof(struct dvb_usb_device_properties));
+	sb340->firmware = "dvb-usb-sb340.fw";
+	sb340->num_device_descs = 1;
+	sb340->devices[0] = d662;
+	sb340->adapter->frontend_attach = ds3000_frontend_attach;
+
 	p7500 = kzalloc(sizeof(struct dvb_usb_device_properties), GFP_KERNEL);
 	if (!p7500) {
 		kfree(p1100);
@@ -2443,6 +2466,8 @@ static int dw2102_probe(struct usb_interface *intf,
 	    0 == dvb_usb_device_init(intf, p1100,
 			THIS_MODULE, NULL, adapter_nr) ||
 	    0 == dvb_usb_device_init(intf, s660,
+			THIS_MODULE, NULL, adapter_nr) ||
+	    0 == dvb_usb_device_init(intf, sb340,
 			THIS_MODULE, NULL, adapter_nr) ||
 	    0 == dvb_usb_device_init(intf, p7500,
 			THIS_MODULE, NULL, adapter_nr) ||
@@ -2489,6 +2514,7 @@ MODULE_AUTHOR("Igor M. Liplianin (c) liplianin@me.by");
 MODULE_DESCRIPTION("Driver for DVBWorld DVB-S 2101, 2102, DVB-S2 2104,"
 				" DVB-C 3101 USB2.0,"
 				" TeVii S600, S630, S650, S660, S480, S421, S632"
+				" StarBlazer SB340 USB2.0,"
 				" Prof 1100, 7500 USB2.0,"
 				" Geniatech SU3000, T220 devices");
 MODULE_VERSION("0.1");
