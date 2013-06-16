@@ -4511,6 +4511,32 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 		break;
 	}
 
+	if (state->config->ts3_mode == STV090x_TSMODE_SERIAL_CONTINUOUS) {
+#if 1
+//		if (state->config->ts3_clk > 0) {
+//			speed = state->internal->mclk / (state->config->ts3_clk / 32);
+//			if (speed < 0x20)
+//				speed = 0x20;
+//			if (speed > 0xff)
+//				speed = 0xff;
+//
+//			reg = STV090x_READ_DEMOD(state, TSCFGM);
+//			STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 0x3);
+//			if (STV090x_WRITE_DEMOD(state, TSCFGM, reg) < 0)
+//				goto err;
+//			if (STV090x_WRITE_DEMOD(state, TSSPEED, speed) < 0)
+//				goto err;
+//		}
+#endif
+		stv090x_write_reg(state, STV090x_TSGENERAL, 0x0);
+		reg = STV090x_READ_DEMOD(state, TSCFGH);
+//		STV090x_SETFIELD_Px(reg, TSFIFO_DVBCI_FIELD, 0x1);
+		STV090x_SETFIELD_Px(reg, TSFIFO_DVBCI_FIELD, 0x0);
+		STV090x_SETFIELD_Px(reg, TSFIFO_SERIAL_FIELD, 0x1);
+		if (STV090x_WRITE_DEMOD(state, TSCFGH, reg) < 0)
+			goto err;
+	}
+
 	if (state->config->ts1_clk > 0) {
 		u32 speed;
 

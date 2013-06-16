@@ -5,3 +5,4 @@ obj-y += tuners/
 obj-$(CONFIG_VIDEO_SAA7146) += saa7146.o
 obj-$(CONFIG_VIDEO_SAA7146_VV) += saa7146_vv.o
 obj-$(CONFIG_SAA716X_CORE) += saa716x/
+obj-$(CONFIG_SAA7231_CORE) += saa7231/

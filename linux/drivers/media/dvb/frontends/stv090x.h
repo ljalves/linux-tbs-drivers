@@ -75,8 +75,11 @@ struct stv090x_config {
 
 	u8 ts1_mode;
 	u8 ts2_mode;
+	u8 ts3_mode;
+
 	u32 ts1_clk;
 	u32 ts2_clk;
+	u32 ts3_clk;
 
 	u8 ts1_tei : 1;
 	u8 ts2_tei : 1;

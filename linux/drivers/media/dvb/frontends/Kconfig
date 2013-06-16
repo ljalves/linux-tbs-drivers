@@ -49,6 +49,13 @@ config DVB_STV6110x
 	help
 	  A Silicon tuner that supports DVB-S and DVB-S2 modes
 
+config DVB_CXD2850
+	tristate "Sony CXD2850"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  Say Y when you want to support this frontend.
+
 comment "Multistandard (cable + terrestrial) frontends"
 	depends on DVB_CORE
 
@@ -69,6 +76,7 @@ config DVB_TDA18271C2DD
 	  NXP TDA18271 silicon tuner.
 
 	  Say Y when you want to support this tuner.
+
 
 comment "DVB-S (satellite) frontends"
 	depends on DVB_CORE
@@ -622,6 +630,13 @@ config DVB_TDA10048
 	help
 	  A DVB-T tuner module. Say Y when you want to support this frontend.
 
+config DVB_TDA18272
+	tristate "NXP TDA18272 based"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  A silicon tuner module. Say Y when you want to support this tuner.
+
 config DVB_AF9013
 	tristate "Afatech AF9013 demodulator"
 	depends on DVB_CORE && I2C
@@ -649,6 +664,20 @@ config DVB_CXD2820R
 	default m if DVB_FE_CUSTOMISE
 	help
 	  Say Y when you want to support this frontend.
+
+config DVB_CXD2817
+	tristate "Sony CXD2817"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  Say Y when you want to support this frontend.
+
+config DVB_CXD2861
+	tristate "Sony CXD2861"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  Say Y when you want to support this tuner
 
 comment "DVB-C (cable) frontends"
 	depends on DVB_CORE
@@ -874,6 +903,13 @@ config DVB_A8293
 	tristate "Allegro A8293"
 	depends on DVB_CORE && I2C
 	default m if DVB_FE_CUSTOMISE
+
+config DVB_A8290
+	tristate "Allegro A8290 SEC controller"
+	depends on DVB_CORE && I2C
+	default m if DVB_FE_CUSTOMISE
+	help
+	  A SEC controller.
 
 config DVB_LGS8GL5
 	tristate "Silicon Legend LGS-8GL5 demodulator (OFDM)"
