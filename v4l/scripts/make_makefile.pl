@@ -32,7 +32,7 @@ sub check_line($$$)
 		# It's a file, add it to list of files to install
 		s/\.o$/.ko/;
 		my $idir = $dir;
-		$idir =~ s|^../linux/drivers/media/||;
+		$idir =~ s|^../linux/drivers/media/?||;
 		$instdir{$idir}{$_} = 1;
 		$count++;
 	}
