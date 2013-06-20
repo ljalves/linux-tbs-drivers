@@ -3741,12 +3741,37 @@ static int stv090x_read_cnr(struct dvb_frontend *fe, u16 *cnr)
 	return 0;
 }
 
-/* Konstantin Dimitrov <kosio.dimitrov@gmail.com>: add it just as reminder */
 static int stv090x_read_ucblocks(struct dvb_frontend *fe, u32 * ucblocks)
 {
-	/* FIXME: Implement me */
-	*ucblocks = 0x00;
-	
+	struct stv090x_state *state = fe->demodulator_priv;
+	u8 err_val1, err_val0;
+	u32 header_err_val = 0;
+
+	*ucblocks = 0x0;
+
+	switch (state->delsys) {
+	case STV090x_DVBS2:
+		/* DVB-S2 delineator errors count */
+		/* retreiving number for errnous headers */
+		err_val1 = STV090x_READ_DEMOD(state, BBFCRCKO1);
+		err_val0 = STV090x_READ_DEMOD(state, BBFCRCKO0);
+		header_err_val = (err_val1 << 8) | err_val0;
+
+		/* retreiving number for errnous packets */
+		err_val1 = STV090x_READ_DEMOD(state, UPCRCKO1);
+		err_val0 = STV090x_READ_DEMOD(state, UPCRCKO0);
+		*ucblocks = (err_val1 << 8) | err_val0;
+		*ucblocks += header_err_val;
+		break;
+
+	case STV090x_DVBS1:
+	case STV090x_DSS:
+		/* not implemented !!! */
+		break;
+	default:
+		break;
+	}
+
 	return 0;
 }
 
@@ -4344,6 +4369,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			case STV090x_TSMODE_DVBCI:
 				if (stv090x_write_reg(state, STV090x_TSGENERAL, 0x06) < 0) /* Mux'd stream mode */
 					goto err;
+#if 0
 				reg = stv090x_read_reg(state, STV090x_P1_TSCFGM);
 				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 3);
 				if (stv090x_write_reg(state, STV090x_P1_TSCFGM, reg) < 0)
@@ -4356,6 +4382,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P2_TSSPEED, 0x28) < 0)
 					goto err;
+#endif
 				break;
 			}
 			break;
@@ -4394,6 +4421,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			case STV090x_TSMODE_PARALLEL_PUNCTURED:
 			case STV090x_TSMODE_DVBCI:
 				stv090x_write_reg(state, STV090x_TSGENERAL1X, 0x16);
+#if 0
 				reg = stv090x_read_reg(state, STV090x_P1_TSCFGM);
 				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 3);
 				if (stv090x_write_reg(state, STV090x_P1_TSCFGM, reg) < 0)
@@ -4406,6 +4434,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P2_TSSPEED, 0x28) < 0)
 					goto err;
+#endif
 				break;
 			}
 			break;
@@ -4537,6 +4566,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			goto err;
 	}
 
+#if 0
 	if (state->config->ts1_clk > 0) {
 		u32 speed;
 
@@ -4600,7 +4630,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 		if (stv090x_write_reg(state, STV090x_P2_TSSPEED, speed) < 0)
 			goto err;
 	}
-
+#endif
 	reg = stv090x_read_reg(state, STV090x_P2_TSCFGH);
 	STV090x_SETFIELD_Px(reg, RST_HWARE_FIELD, 0x01);
 	if (stv090x_write_reg(state, STV090x_P2_TSCFGH, reg) < 0)
