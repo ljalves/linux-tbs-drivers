@@ -1065,6 +1065,8 @@ static struct stv090x_config prof_7500_stv090x_config = {
         .ts1_mode               = STV090x_TSMODE_PARALLEL_PUNCTURED,
         .repeater_level         = STV090x_RPTLEVEL_64,
         .adc1_range             = STV090x_ADC_2Vpp,
+        .tuner_bbgain           = 8,
+
         .diseqc_envelope_mode   = false,
 
         .tuner_get_frequency    = stb6100_get_frequency,

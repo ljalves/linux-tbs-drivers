@@ -1969,6 +1969,9 @@ static struct stv090x_config skystar2_stv090x_config = {
 
 	.repeater_level		= STV090x_RPTLEVEL_16,
 
+	.adc1_range	= STV090x_ADC_1Vpp,
+	.tuner_bbgain   = 6,
+
 	.tuner_init		= NULL,
 	.tuner_sleep		= NULL,
 	.tuner_set_mode		= NULL,
@@ -2157,6 +2160,9 @@ static struct stv090x_config stv0900_config = {
 	.ts2_mode	= STV090x_TSMODE_PARALLEL_PUNCTURED,
 
 	.repeater_level		= STV090x_RPTLEVEL_16,
+
+	.adc1_range	= STV090x_ADC_2Vpp,
+	.tuner_bbgain   = 8,
 
 	.tuner_get_frequency	= stb6100_get_frequency,
 	.tuner_set_frequency	= stb6100_set_frequency,
@@ -3533,6 +3539,9 @@ static struct stv090x_config stv0903_config = {
 	.ts2_mode	= STV090x_TSMODE_PARALLEL_PUNCTURED,
 
 	.repeater_level		= STV090x_RPTLEVEL_16,
+
+	.adc1_range	= STV090x_ADC_2Vpp,
+	.tuner_bbgain   = 8,
 
 	.tuner_get_frequency	= stb6100_get_frequency,
 	.tuner_set_frequency	= stb6100_set_frequency,

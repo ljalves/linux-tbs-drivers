@@ -187,6 +187,9 @@ static struct stv090x_config stv0900_config = {
 	
 	.repeater_level         = STV090x_RPTLEVEL_16,
 
+	.adc1_range	= STV090x_ADC_2Vpp,
+	.tuner_bbgain   = 8,
+
 	.tuner_get_frequency    = stb6100_get_frequency,
 	.tuner_set_frequency    = stb6100_set_frequency,
 	.tuner_set_bandwidth    = stb6100_set_bandwidth,
