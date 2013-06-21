@@ -4369,20 +4369,18 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			case STV090x_TSMODE_DVBCI:
 				if (stv090x_write_reg(state, STV090x_TSGENERAL, 0x06) < 0) /* Mux'd stream mode */
 					goto err;
-#if 0
 				reg = stv090x_read_reg(state, STV090x_P1_TSCFGM);
 				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 3);
 				if (stv090x_write_reg(state, STV090x_P1_TSCFGM, reg) < 0)
 					goto err;
 				reg = stv090x_read_reg(state, STV090x_P2_TSCFGM);
-				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 3);
+				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 0);
 				if (stv090x_write_reg(state, STV090x_P2_TSCFGM, reg) < 0)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P1_TSSPEED, 0x14) < 0)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P2_TSSPEED, 0x28) < 0)
 					goto err;
-#endif
 				break;
 			}
 			break;
@@ -4394,8 +4392,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			case STV090x_TSMODE_SERIAL_PUNCTURED:
 			case STV090x_TSMODE_SERIAL_CONTINUOUS:
 			default:
-				if (stv090x_write_reg(state, STV090x_TSGENERAL, 0x40) < 0)
-				/* if (stv090x_write_reg(state, STV090x_TSGENERAL, 0x0c) < 0) */
+				 if (stv090x_write_reg(state, STV090x_TSGENERAL, 0x0c) < 0)
 					goto err;
 				break;
 
@@ -4421,20 +4418,18 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 			case STV090x_TSMODE_PARALLEL_PUNCTURED:
 			case STV090x_TSMODE_DVBCI:
 				stv090x_write_reg(state, STV090x_TSGENERAL1X, 0x16);
-#if 0
 				reg = stv090x_read_reg(state, STV090x_P1_TSCFGM);
 				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 3);
 				if (stv090x_write_reg(state, STV090x_P1_TSCFGM, reg) < 0)
 					goto err;
-				reg = stv090x_read_reg(state, STV090x_P1_TSCFGM);
+				reg = stv090x_read_reg(state, STV090x_P2_TSCFGM);
 				STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 0);
-				if (stv090x_write_reg(state, STV090x_P1_TSCFGM, reg) < 0)
+				if (stv090x_write_reg(state, STV090x_P2_TSCFGM, reg) < 0)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P1_TSSPEED, 0x14) < 0)
 					goto err;
 				if (stv090x_write_reg(state, STV090x_P2_TSSPEED, 0x28) < 0)
 					goto err;
-#endif
 				break;
 			}
 			break;
@@ -4541,32 +4536,30 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 	}
 
 	if (state->config->ts3_mode == STV090x_TSMODE_SERIAL_CONTINUOUS) {
-#if 1
-//		if (state->config->ts3_clk > 0) {
-//			speed = state->internal->mclk / (state->config->ts3_clk / 32);
-//			if (speed < 0x20)
-//				speed = 0x20;
-//			if (speed > 0xff)
-//				speed = 0xff;
-//
-//			reg = STV090x_READ_DEMOD(state, TSCFGM);
-//			STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 0x3);
-//			if (STV090x_WRITE_DEMOD(state, TSCFGM, reg) < 0)
-//				goto err;
-//			if (STV090x_WRITE_DEMOD(state, TSSPEED, speed) < 0)
-//				goto err;
-//		}
-#endif
+		if (state->config->ts3_clk > 0) {
+			u32 speed;
+			speed = state->internal->mclk / (state->config->ts3_clk / 32);
+			if (speed < 0x20)
+				speed = 0x20;
+			if (speed > 0xff)
+				speed = 0xff;
+
+			reg = STV090x_READ_DEMOD(state, TSCFGM);
+			STV090x_SETFIELD_Px(reg, TSFIFO_MANSPEED_FIELD, 0x3);
+			if (STV090x_WRITE_DEMOD(state, TSCFGM, reg) < 0)
+			goto err;
+			if (STV090x_WRITE_DEMOD(state, TSSPEED, speed) < 0)
+				goto err;
+		}
 		stv090x_write_reg(state, STV090x_TSGENERAL, 0x0);
 		reg = STV090x_READ_DEMOD(state, TSCFGH);
-//		STV090x_SETFIELD_Px(reg, TSFIFO_DVBCI_FIELD, 0x1);
+		/* STV090x_SETFIELD_Px(reg, TSFIFO_DVBCI_FIELD, 0x1); */
 		STV090x_SETFIELD_Px(reg, TSFIFO_DVBCI_FIELD, 0x0);
 		STV090x_SETFIELD_Px(reg, TSFIFO_SERIAL_FIELD, 0x1);
 		if (STV090x_WRITE_DEMOD(state, TSCFGH, reg) < 0)
 			goto err;
 	}
 
-#if 0
 	if (state->config->ts1_clk > 0) {
 		u32 speed;
 
@@ -4630,7 +4623,7 @@ static int stv090x_set_tspath(struct stv090x_state *state)
 		if (stv090x_write_reg(state, STV090x_P2_TSSPEED, speed) < 0)
 			goto err;
 	}
-#endif
+
 	reg = stv090x_read_reg(state, STV090x_P2_TSCFGH);
 	STV090x_SETFIELD_Px(reg, RST_HWARE_FIELD, 0x01);
 	if (stv090x_write_reg(state, STV090x_P2_TSCFGH, reg) < 0)
