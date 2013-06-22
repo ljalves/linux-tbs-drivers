@@ -3453,12 +3453,14 @@ static int stv090x_set_mis(struct stv090x_state *state, int mis)
 
 	if (mis == NO_STREAM_ID_FILTER) {
 		dprintk(FE_DEBUG, 1, "Disable MIS filtering");
+		stv090x_set_pls(state, 0, 0);
 		reg = STV090x_READ_DEMOD(state, PDELCTRL1);
 		STV090x_SETFIELD_Px(reg, FILTER_EN_FIELD, 0x00);
 		if (STV090x_WRITE_DEMOD(state, PDELCTRL1, reg) < 0)
 			goto err;
 	} else {
 		dprintk(FE_DEBUG, 1, "Enable MIS filtering - %d", mis);
+		stv090x_set_pls(state, (mis>>26) & 0x3, (mis>>8) & 0x3FFFF);
 		reg = STV090x_READ_DEMOD(state, PDELCTRL1);
 		STV090x_SETFIELD_Px(reg, FILTER_EN_FIELD, 0x01);
 		if (STV090x_WRITE_DEMOD(state, PDELCTRL1, reg) < 0)
@@ -3496,7 +3498,6 @@ static enum dvbfe_search stv090x_search(struct dvb_frontend *fe, struct dvb_fron
 		state->search_range = 5000000;
 	}
 
-	stv090x_set_pls(state, (props->dvbt2_plp_id>>26) & 0x3, (props->dvbt2_plp_id>>8) & 0x3FFFF);
 	stv090x_set_mis(state, props->dvbt2_plp_id);
 
 	if (stv090x_algo(state) == STV090x_RANGEOK) {
