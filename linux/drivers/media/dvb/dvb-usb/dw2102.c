@@ -1097,6 +1097,10 @@ static struct cxd2820r_config cxd2820r_config = {
 	.if_dvbt2_7 = 3500,
 	.if_dvbt2_8 = 4000,
 	.if_dvbc    = 5000,
+
+	/* enable LNA for DVB-T2 and DVB-C */
+	.gpio_dvbt2[0] = CXD2820R_GPIO_E | CXD2820R_GPIO_O | CXD2820R_GPIO_L,
+	.gpio_dvbc[0] = CXD2820R_GPIO_E | CXD2820R_GPIO_O | CXD2820R_GPIO_L,
 };
 
 static struct tda18271_config tda18271_config = {
@@ -1384,6 +1388,13 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 {
 	u8 obuf[3] = { 0xe, 0x80, 0 };
 	u8 ibuf[] = { 0 };
+
+	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
+		err("command 0x0e transfer failed.");
+
+	obuf[0] = 0xe;
+	obuf[1] = 0x83;
+	obuf[2] = 0;
 
 	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
 		err("command 0x0e transfer failed.");
