@@ -226,8 +226,8 @@ static struct tda18212_config tda18212_config1 = {
 	.if_dvbt2_7 = 4000,
 	.if_dvbt2_8 = 4000,
 	.if_dvbc = 5000,
-	.loop_through = 0,
-	.xtout = 0
+	.loop_through = 1,
+	.xtout = 1
 };
 
 static inline void print_err_status(struct cx231xx *dev, int packet, int status)
