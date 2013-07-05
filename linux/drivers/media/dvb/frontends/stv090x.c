@@ -3763,6 +3763,10 @@ static int stv090x_read_ucblocks(struct dvb_frontend *fe, u32 * ucblocks)
 		err_val0 = STV090x_READ_DEMOD(state, UPCRCKO0);
 		*ucblocks = (err_val1 << 8) | err_val0;
 		*ucblocks += header_err_val;
+		STV090x_WRITE_DEMOD(state, BBFCRCKO1, 0);
+		STV090x_WRITE_DEMOD(state, BBFCRCKO0, 0);
+		STV090x_WRITE_DEMOD(state, UPCRCKO1, 0);
+		STV090x_WRITE_DEMOD(state, UPCRCKO0, 0);
 		break;
 
 	case STV090x_DVBS1:
