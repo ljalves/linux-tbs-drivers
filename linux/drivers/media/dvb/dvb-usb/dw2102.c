@@ -1389,6 +1389,9 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 	u8 obuf[3] = { 0xe, 0x80, 0 };
 	u8 ibuf[] = { 0 };
 
+	if (d->fe[0] != NULL)
+		return 0;
+
 	if (dvb_usb_generic_rw(d->dev, obuf, 3, ibuf, 1, 0) < 0)
 		err("command 0x0e transfer failed.");
 
@@ -1419,17 +1422,14 @@ static int t220_frontend_attach(struct dvb_usb_adapter *d)
 		i2c_tuner = cxd2820r_get_tuner_i2c_adapter(d->fe[0]);
 		if (dvb_attach(tda18271_attach, d->fe[0], 0x60,
 			i2c_tuner, &tda18271_config)) {
-			info("Attached TDA18271HD/CXD2820R!\n");
+			info("Attached TDA18271HD/CXD2820R for DVB-T/T2!\n");
 			/* FE 1. This dvb_attach() cannot fail. */
 			d->fe[1] = dvb_attach(cxd2820r_attach, NULL, NULL,
 				d->fe[0]);
-			d->fe[1]->id = 1;
 			/* FE 1 attach tuner */
-			if (!dvb_attach(tda18271_attach, d->fe[1], 0x60,
-				i2c_tuner, &tda18271_config)) {
-				dvb_frontend_detach(d->fe[1]);
-				/* leave FE 0 still active */
-			}
+			if (dvb_attach(tda18271_attach, d->fe[1], 0x60,
+				i2c_tuner, &tda18271_config))
+				info("Attached TDA18271HD/CXD2820R for DVB-C!\n");
 			return 0;
 		}
 	}
@@ -2281,6 +2281,7 @@ static struct dvb_usb_device_properties t220_properties = {
 
 	.adapter = {
 		{
+			.num_frontends = 2,
 			.streaming_ctrl   = su3000_streaming_ctrl,
 			.frontend_attach  = t220_frontend_attach,
 			.stream = {
