@@ -379,7 +379,11 @@ int av7110_ir_init(struct av7110 *av7110)
 	if (av_cnt == 1) {
 		e = proc_create("av7110_ir", S_IWUSR, NULL, &av7110_ir_proc_fops);
 		if (e)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 			e->size = 4 + 256 * sizeof(u16);
+#else
+			proc_set_size(e, 4 + 256 * sizeof(u16));
+#endif
 	}
 
 	tasklet_init(&av7110->ir.ir_tasklet, av7110_emit_key, (unsigned long) &av7110->ir);

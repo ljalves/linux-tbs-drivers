@@ -556,7 +556,7 @@ int saa716x_i2c_exit(struct saa716x_dev *saa716x)
 {
 	struct saa716x_i2c *i2c		= saa716x->i2c;
 	struct i2c_adapter *adapter	= NULL;
-	int i, err = 0;
+	int i;
 
 	dprintk(SAA716x_DEBUG, 1, "Removing SAA%02x I2C Core", saa716x->pdev->device);
 
@@ -569,18 +569,12 @@ int saa716x_i2c_exit(struct saa716x_dev *saa716x)
 		saa716x_i2c_hwdeinit(i2c, SAA716x_I2C_BUS(i));
 		dprintk(SAA716x_DEBUG, 1, "Removing adapter (%d) %s", i, adapter->name);
 
-		err = i2c_del_adapter(adapter);
-		if (err < 0) {
-			dprintk(SAA716x_ERROR, 1, "Adapter (%d) %s remove failed", i, adapter->name);
-			goto exit;
-		}
+		i2c_del_adapter(adapter);
+		dprintk(SAA716x_ERROR, 1, "Adapter (%d) %s remove", i, adapter->name);
 		i2c++;
 	}
 	dprintk(SAA716x_DEBUG, 1, "SAA%02x I2C Core succesfully removed", saa716x->pdev->device);
 
 	return 0;
-
-exit:
-	return err;
 }
 EXPORT_SYMBOL_GPL(saa716x_i2c_exit);

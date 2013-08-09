@@ -425,10 +425,10 @@ int __devexit fini_bttv_i2c(struct bttv *btv)
 int fini_bttv_i2c(struct bttv *btv)
 #endif
 {
-	if (0 != btv->i2c_rc)
-		return 0;
+	if (0 == btv->i2c_rc)
+		i2c_del_adapter(&btv->c.i2c_adap);
 
-	return i2c_del_adapter(&btv->c.i2c_adap);
+	return 0;
 }
 
 int bttv_input_init(struct bttv *btv)

@@ -349,15 +349,17 @@ typedef enum fe_delivery_system {
 	SYS_ISDBC,
 	SYS_ATSC,
 	SYS_ATSCMH,
-	SYS_DMBTH,
+	SYS_DTMB,
 	SYS_CMMB,
 	SYS_DAB,
 	SYS_DVBT2,
-	SYS_DVBC_ANNEX_C
+	SYS_TURBO,
+	SYS_DVBC_ANNEX_C,
 } fe_delivery_system_t;
 
 /* backward compatibility */
 #define SYS_DVBC_ANNEX_AC	SYS_DVBC_ANNEX_A
+#define SYS_DMBTH SYS_DTMB /* DMB-TH is legacy name, use DTMB instead */
 
 struct dtv_cmds_h {
 	char	*name;		/* A display name for debugging purposes */

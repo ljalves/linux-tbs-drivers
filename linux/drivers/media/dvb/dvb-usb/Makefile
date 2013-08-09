@@ -66,6 +66,12 @@ obj-$(CONFIG_DVB_USB_TBSQBOX22) += dvb-usb-tbsqbox22.o
 dvb-usb-tbs5880-objs = tbs5880.o tbs5880ctrl.o
 obj-$(CONFIG_DVB_USB_TBS5880) += dvb-usb-tbs5880.o
 
+dvb-usb-tbs5881-objs = tbs5881.o tbs5881ctrl.o
+obj-$(CONFIG_DVB_USB_TBS5881) += dvb-usb-tbs5881.o
+
+dvb-usb-tbs5220-objs = tbs5220.o tbs5220ctrl.o
+obj-$(CONFIG_DVB_USB_TBS5220) += dvb-usb-tbs5220.o
+
 dvb-usb-tbs5680-objs = tbs5680.o tbs5680ctrl.o
 obj-$(CONFIG_DVB_USB_TBS5680) += dvb-usb-tbs5680.o
 

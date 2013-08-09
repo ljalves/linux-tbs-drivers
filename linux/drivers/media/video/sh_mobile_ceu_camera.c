@@ -139,6 +139,11 @@ struct sh_mobile_ceu_cam {
 	enum v4l2_mbus_pixelcode code;
 };
 
+static u32 soc_camera_grp_id(const struct soc_camera_device *icd)
+{
+	return (icd->iface << 8) | (icd->devnum + 1);
+}
+
 static struct sh_mobile_ceu_buffer *to_ceu_vb(struct vb2_buffer *vb)
 {
 	return container_of(vb, struct sh_mobile_ceu_buffer, vb);
@@ -1458,7 +1463,7 @@ static int sh_mobile_ceu_set_crop(struct soc_camera_device *icd,
 	}
 
 	if (interm_width < icd->user_width || interm_height < icd->user_height) {
-		ret = v4l2_device_call_until_err(sd->v4l2_dev, (int)icd, video,
+		ret = v4l2_device_call_until_err(sd->v4l2_dev, soc_camera_grp_id(icd), video,
 						 s_mbus_fmt, &mf);
 		if (ret < 0)
 			return ret;
@@ -1963,7 +1968,11 @@ static int bus_notify(struct notifier_block *nb,
 	return NOTIFY_DONE;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 static int __devinit sh_mobile_ceu_probe(struct platform_device *pdev)
+#else
+static int sh_mobile_ceu_probe(struct platform_device *pdev)
+#endif
 {
 	struct sh_mobile_ceu_dev *pcdev;
 	struct resource *res;
@@ -2146,7 +2155,11 @@ exit:
 	return err;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 static int __devexit sh_mobile_ceu_remove(struct platform_device *pdev)
+#else
+static int sh_mobile_ceu_remove(struct platform_device *pdev)
+#endif
 {
 	struct soc_camera_host *soc_host = to_soc_camera_host(&pdev->dev);
 	struct sh_mobile_ceu_dev *pcdev = container_of(soc_host,
@@ -2195,7 +2208,11 @@ static struct platform_driver sh_mobile_ceu_driver = {
 		.pm	= &sh_mobile_ceu_dev_pm_ops,
 	},
 	.probe		= sh_mobile_ceu_probe,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 	.remove		= __devexit_p(sh_mobile_ceu_remove),
+#else
+	.remove         = sh_mobile_ceu_remove,
+#endif
 };
 
 static int __init sh_mobile_ceu_init(void)

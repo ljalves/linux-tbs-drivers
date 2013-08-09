@@ -313,6 +313,7 @@ int tbsci_poll_slot_status(struct dvb_ca_en50221 *ca,
 
 		value = !data;
 		tbsci_i2c_write(state, 0xc3, &value, 1);
+		saa716x_gpio_write(saa716x, 6, value);
 		msleep(300);
 
 		break;

@@ -61,6 +61,14 @@ cp ./v4l/tbs6926ctrl_driver.o.x86 ./v4l/tbs6926ctrl_driver.o
 
 cp ./v4l/tbs6923fe_driver.o.x86 ./v4l/tbs6923fe_driver.o
 
+cp ./v4l/tbs6982se_driver.o.x86 ./v4l/tbs6982se_driver.o
+
+cp ./v4l/tbs5881ctrl.o.x86 ./v4l/tbs5881ctrl.o
+cp ./v4l/tbs5881fe_driver.o.x86 ./v4l/tbs5881fe_driver.o
+cp ./v4l/tbs5220ctrl.o.x86 ./v4l/tbs5220ctrl.o
+cp ./v4l/tbs5220fe_driver.o.x86 ./v4l/tbs5220fe_driver.o
+cp ./v4l/tbs62x1fe_driver.o.x86 ./v4l/tbs62x1fe_driver.o
+
 cp ./v4l/saa716x_tt_drv.o.x86 ./v4l/saa716x_tt_drv.o
 cp ./v4l/tt_s2_4100_drv.o.x86 ./v4l/tt_s2_4100_drv.o
 

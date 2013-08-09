@@ -8,6 +8,7 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/io.h>
@@ -182,19 +183,13 @@ static unsigned long sh_csi2_query_bus_param(struct soc_camera_device *icd)
 static int sh_csi2_client_connect(struct sh_csi2 *priv)
 {
 	struct sh_csi2_pdata *pdata = priv->pdev->dev.platform_data;
-	struct v4l2_subdev *sd, *csi2_sd = &priv->subdev;
+	struct v4l2_subdev *csi2_sd = &priv->subdev;
 	struct soc_camera_device *icd = NULL;
 	struct device *dev = v4l2_get_subdevdata(&priv->subdev);
 	int i;
 
-	v4l2_device_for_each_subdev(sd, csi2_sd->v4l2_dev)
-		if (sd->grp_id) {
-			icd = (struct soc_camera_device *)sd->grp_id;
-			break;
-		}
-
-	if (!icd)
-		return -EINVAL;
+	if (priv->client)
+		return -EBUSY;
 
 	for (i = 0; i < pdata->num_clients; i++)
 		if (&pdata->clients[i].pdev->dev == icd->pdev)
@@ -223,16 +218,10 @@ static int sh_csi2_client_connect(struct sh_csi2 *priv)
 
 static void sh_csi2_client_disconnect(struct sh_csi2 *priv)
 {
-	struct soc_camera_device *icd = (struct soc_camera_device *)priv->subdev.grp_id;
+	if (!priv->client)
+		return;
 
 	priv->client = NULL;
-	priv->subdev.grp_id = 0;
-
-	/* Driver is about to be unbound */
-	icd->ops->set_bus_param		= priv->set_bus_param;
-	icd->ops->query_bus_param	= priv->query_bus_param;
-	priv->set_bus_param		= NULL;
-	priv->query_bus_param		= NULL;
 
 	pm_runtime_put(v4l2_get_subdevdata(&priv->subdev));
 }
@@ -257,7 +246,11 @@ static struct v4l2_subdev_ops sh_csi2_subdev_ops = {
 	.video	= &sh_csi2_subdev_video_ops,
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 static __devinit int sh_csi2_probe(struct platform_device *pdev)
+#else
+static int sh_csi2_probe(struct platform_device *pdev)
+#endif
 {
 	struct resource *res;
 	unsigned int irq;
@@ -329,7 +322,11 @@ ereqreg:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 static __devexit int sh_csi2_remove(struct platform_device *pdev)
+#else
+static int sh_csi2_remove(struct platform_device *pdev)
+#endif
 {
 	struct sh_csi2 *priv = platform_get_drvdata(pdev);
 	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -345,7 +342,11 @@ static __devexit int sh_csi2_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver __refdata sh_csi2_pdrv = {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
 	.remove	= __devexit_p(sh_csi2_remove),
+#else
+	.remove = sh_csi2_remove,
+#endif
 	.probe	= sh_csi2_probe,
 	.driver	= {
 		.name	= "sh-mobile-csi2",

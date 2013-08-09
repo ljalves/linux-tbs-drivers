@@ -1006,6 +1006,8 @@ source "drivers/media/video/cx231xx/Kconfig"
 
 source "drivers/media/video/usbvision/Kconfig"
 
+source "drivers/media/video/stk1160/Kconfig"
+
 source "drivers/media/video/et61x251/Kconfig"
 
 source "drivers/media/video/sn9c102/Kconfig"

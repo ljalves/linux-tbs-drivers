@@ -130,14 +130,22 @@ static int zoran_show(struct seq_file *p, void *v)
 
 static int zoran_open(struct inode *inode, struct file *file)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 	struct zoran *data = PDE(inode)->data;
+#else
+	struct zoran *data = PDE_DATA(inode);
+#endif
 	return single_open(file, zoran_show, data);
 }
 
 static ssize_t zoran_write(struct file *file, const char __user *buffer,
 			size_t count, loff_t *ppos)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 	struct zoran *zr = PDE(file->f_path.dentry->d_inode)->data;
+#else
+	struct zoran *zr = PDE_DATA(file_inode(file));
+#endif
 	char *string, *sp;
 	char *line, *ldelim, *varname, *svar, *tdelim;
 
@@ -201,7 +209,12 @@ zoran_proc_init (struct zoran *zr)
 		dprintk(2,
 			KERN_INFO
 			"%s: procfs entry /proc/%s allocated. data=%p\n",
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 			ZR_DEVNAME(zr), name, zr->zoran_proc->data);
+#else
+			ZR_DEVNAME(zr), name, zr);
+#endif
+
 	} else {
 		dprintk(1, KERN_ERR "%s: Unable to initialise /proc/%s\n",
 			ZR_DEVNAME(zr), name);
