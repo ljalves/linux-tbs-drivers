@@ -1514,6 +1514,19 @@ static int dvb_register(struct cx23885_tsport *port)
 		memcpy(port->frontends.adapter.proposed_mac, eeprom + 0xa0, 6);
 		break;
 		}
+	case CX23885_BOARD_PROF_8000: {
+		u8 eeprom[256]; /* 24C02 i2c eeprom */
+
+		if (port->nr != 1)
+			break;
+
+		/* Read entire EEPROM */
+		dev->i2c_bus[0].i2c_client.addr = 0xa0 >> 1;
+		tveeprom_read(&dev->i2c_bus[0].i2c_client, eeprom, sizeof(eeprom));
+		printk(KERN_INFO "Prof 8000 MAC= %pM\n", eeprom + 0xa0);
+		memcpy(port->frontends.adapter.proposed_mac, eeprom + 0xa0, 6);
+		break;
+		}
 	case CX23885_BOARD_BST_PS8512:
 	case CX23885_BOARD_DVBSKY_S950:
 	case CX23885_BOARD_DVBSKY_S952:
