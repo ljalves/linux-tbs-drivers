@@ -1028,6 +1028,7 @@ static int dvb_register(struct cx8802_dev *dev)
 	struct cx88_core *core = dev->core;
 	struct videobuf_dvb_frontend *fe0, *fe1 = NULL;
 	int mfe_shared = 0; /* bus not shared by default */
+	int ret;
 
 	if (0 != core->i2c_rc) {
 		printk(KERN_ERR "%s/2: no i2c-bus available, cannot attach dvb drivers\n", core->name);
@@ -1677,8 +1678,37 @@ static int dvb_register(struct cx8802_dev *dev)
 	call_all(core, core, s_power, 0);
 
 	/* register everything */
-	return videobuf_dvb_register_bus(&dev->frontends, THIS_MODULE, dev,
+	ret =  videobuf_dvb_register_bus(&dev->frontends, THIS_MODULE, dev,
 					 &dev->pci->dev, adapter_nr, mfe_shared, NULL);
+	if (ret)
+		goto frontend_detach;
+
+	/* init frontend(s) */
+	switch (core->boardnr) {
+	case CX88_BOARD_PROF_6200:
+	case CX88_BOARD_TBS_8910:
+	case CX88_BOARD_TEVII_S420:
+	case CX88_BOARD_TEVII_S460:
+	case CX88_BOARD_TEVII_S464:
+	case CX88_BOARD_SB_540:
+	case CX88_BOARD_OMICOM_SS4_PCI:
+	case CX88_BOARD_TBS_8920:
+	case CX88_BOARD_PROF_7300:
+	case CX88_BOARD_SATTRADE_ST4200:
+	case CX88_BOARD_PROF_7301:
+	case CX88_BOARD_TBS_8921:
+	case CX88_BOARD_TBS_8922: {
+		u8 eeprom[256]; /* 24C02 i2c eeprom */
+		/* Read entire EEPROM */
+		core->i2c_client.addr = 0xa0 >> 1;
+		tveeprom_read(&core->i2c_client, eeprom, sizeof(eeprom));
+		printk(KERN_INFO "TBS CX88 MAC= %pM\n", eeprom + 0x10);
+		memcpy(dev->frontends.adapter.proposed_mac, eeprom + 0x10, 6);
+		break;
+		}
+	}
+
+	return ret;
 
 frontend_detach:
 	core->gate_ctrl = NULL;
