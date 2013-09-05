@@ -58,7 +58,25 @@ static void stk1160_set_std(struct stk1160 *dev)
 
 	static struct regval std525[] = {
 
-		/* 720x480 */
+		/* NTSC: 720x480 */
+		{0x000, 0x0098},
+		{0x002, 0x0093},
+
+		{0x001, 0x0003},
+		{0x003, 0x0080},
+		{0x00D, 0x0000},
+		{0x00F, 0x0002},
+		{0x018, 0x0010},
+		{0x019, 0x0000},
+		{0x01A, 0x0014},
+		{0x01B, 0x000E},
+		{0x01C, 0x0046},
+
+		{0x100, 0x0033},
+		{0x103, 0x0000},
+		{0x104, 0x0000},
+		{0x105, 0x0000},
+		{0x106, 0x0000},
 
 		/* Frame start */
 		{STK116_CFSPO_STX_L, 0x0000},
@@ -77,7 +95,25 @@ static void stk1160_set_std(struct stk1160 *dev)
 
 	static struct regval std625[] = {
 
-		/* 720x576 */
+		/* PAL: 720x576 */
+		{0x000, 0x0098},
+		{0x002, 0x0093},
+
+		{0x001, 0x0003},
+		{0x003, 0x0080},
+		{0x00D, 0x0000},
+		{0x00F, 0x0002},
+		{0x018, 0x0010},
+		{0x019, 0x0000},
+		{0x01A, 0x0014},
+		{0x01B, 0x000E},
+		{0x01C, 0x0046},
+
+		{0x100, 0x0033},
+		{0x103, 0x0000},
+		{0x104, 0x0000},
+		{0x105, 0x0000},
+		{0x106, 0x0000},
 
 		/* TODO: Each line of frame has some junk at the end */
 		/* Frame start */
@@ -204,6 +240,7 @@ static int stk1160_start_streaming(struct stk1160 *dev)
 	}
 
 	/* Start saa711x */
+	v4l2_device_call_all(&dev->v4l2_dev, 0, core, log_status);
 	v4l2_device_call_all(&dev->v4l2_dev, 0, video, s_stream, 1);
 
 	/* Start stk1160 */
@@ -261,7 +298,6 @@ static ssize_t stk1160_read(struct file *file,
 	struct stk1160 *dev = video_drvdata(file);
 	int rc;
 
-	mutex_lock(&dev->v4l_lock);
 	/*
 	 * Read operation is emulated by videobuf2.
 	 * When vb2 calls reqbufs it acquires ownership of queue.
@@ -271,7 +307,6 @@ static ssize_t stk1160_read(struct file *file,
 	rc = vb2_read(&dev->vb_vidq, data, count, ppos,
 			file->f_flags & O_NONBLOCK);
 
-	mutex_unlock(&dev->v4l_lock);
 	return rc;
 }
 
@@ -281,9 +316,7 @@ stk1160_poll(struct file *file, struct poll_table_struct *wait)
 	struct stk1160 *dev = video_drvdata(file);
 	int rc;
 
-	mutex_lock(&dev->v4l_lock);
 	rc = vb2_poll(&dev->vb_vidq, file, wait);
-	mutex_unlock(&dev->v4l_lock);
 
 	return rc;
 }
@@ -292,7 +325,6 @@ static int stk1160_close(struct file *file)
 {
 	struct stk1160 *dev = video_drvdata(file);
 
-	mutex_lock(&dev->v4l_lock);
 	/*
 	 * If this is the owner handle we stop
 	 * streaming to free/dequeue all buffers.
@@ -302,7 +334,6 @@ static int stk1160_close(struct file *file)
 		vb2_queue_release(&dev->vb_vidq);
 		stk1160_drop_owner(dev);
 	}
-	mutex_unlock(&dev->v4l_lock);
 
 	return v4l2_fh_release(file);
 }
@@ -315,9 +346,7 @@ static int stk1160_mmap(struct file *file, struct vm_area_struct *vma)
 	stk1160_dbg("vma=0x%08lx\n", (unsigned long)vma);
 
 	/* TODO: Lock or trylock? */
-	mutex_lock(&dev->v4l_lock);
 	rc = vb2_mmap(&dev->vb_vidq, vma);
-	mutex_unlock(&dev->v4l_lock);
 
 	stk1160_dbg("vma start=0x%08lx, size=%ld (%d)\n",
 		(unsigned long)vma->vm_start,
@@ -437,10 +466,10 @@ static int vidioc_querycap(struct file *file,
 	strcpy(cap->driver, "stk1160");
 	strcpy(cap->card, "stk1160");
 	usb_make_path(dev->udev, cap->bus_info, sizeof(cap->bus_info));
-	cap->capabilities = 
-			V4L2_CAP_VIDEO_CAPTURE |
-			V4L2_CAP_STREAMING |
-			V4L2_CAP_READWRITE ;
+	cap->capabilities =
+		V4L2_CAP_VIDEO_CAPTURE |
+		V4L2_CAP_STREAMING |
+		V4L2_CAP_READWRITE;
 	return 0;
 }
 
@@ -540,6 +569,8 @@ static int vidioc_s_std(struct file *file, void *priv, v4l2_std_id *norm)
 {
 	struct stk1160 *dev = video_drvdata(file);
 	struct vb2_queue *q = &dev->vb_vidq;
+	int status = 0;
+	v4l2_std_id std = 0;
 
 	if (!stk1160_acquire_owner(dev, file))
 		return -EBUSY;
@@ -553,6 +584,9 @@ static int vidioc_s_std(struct file *file, void *priv, v4l2_std_id *norm)
 	if (!dev->udev)
 		return -ENODEV;
 
+	/* We need to set this now, before we call stk1160_set_std */
+	dev->norm = *norm;
+
 	/* This is taken from saa7115 video decoder */
 	if (dev->norm & V4L2_STD_525_60) {
 		dev->width = 720;
@@ -565,8 +599,11 @@ static int vidioc_s_std(struct file *file, void *priv, v4l2_std_id *norm)
 		return -EINVAL;
 	}
 
-	/* We need to set this now, before we call stk1160_set_std */
-	dev->norm = *norm;
+	v4l2_device_call_all(&dev->v4l2_dev, 0, video, querystd, &std);
+	v4l2_device_call_all(&dev->v4l2_dev, 0, video, g_input_status, &status);
+	pr_info("stk1160: decoder input status %d\n", status);
+	pr_info("stk1160: decoder detected standard %llu\n", std);
+	v4l2_device_call_all(&dev->v4l2_dev, 0, core, log_status);
 
 	stk1160_set_std(dev);
 
@@ -735,8 +772,6 @@ static const struct v4l2_ioctl_ops stk1160_ioctl_ops = {
 	.vidioc_streamon      = vidioc_streamon,
 	.vidioc_streamoff     = vidioc_streamoff,
 
-	//.vidioc_log_status  = v4l2_ctrl_log_status,
-	//.vidioc_subscribe_event = v4l2_ctrl_subscribe_event,
 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
 	.vidioc_g_chip_ident = vidioc_g_chip_ident,
 
@@ -751,9 +786,10 @@ static const struct v4l2_ioctl_ops stk1160_ioctl_ops = {
 /*
  * Videobuf2 operations
  */
+
 static int queue_setup(struct vb2_queue *vq, unsigned int *nbuffers,
-				unsigned int *nplanes, unsigned long sizes[], 
-				void *alloc_ctxs[])
+                                unsigned int *nplanes, unsigned long sizes[],
+                                void *alloc_ctxs[])
 {
 	struct stk1160 *dev = vb2_get_drv_priv(vq);
 	unsigned long size;
@@ -898,7 +934,7 @@ int stk1160_video_register(struct stk1160 *dev)
 
 	/*
 	 * Provide a mutex to v4l2 core.
-	 * It will be used to protect *only* v4l2 ioctls.
+	 * In kernel 3.2 it will be used to protect *every* v4l2 ioctls.
 	 */
 	dev->vdev.lock = &dev->v4l_lock;
 

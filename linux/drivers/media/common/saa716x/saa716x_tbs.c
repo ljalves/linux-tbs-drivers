@@ -4259,8 +4259,8 @@ static struct saa716x_config saa716x_tbs6285_config = {
 	.adapters		= 4,
 	.frontend_attach	= saa716x_tbs6285_frontend_attach,
 	.irq_handler		= saa716x_tbs6285_pci_irq,
-	.i2c_rate[0]		= SAA716x_I2C_RATE_100,
-	.i2c_rate[1]            = SAA716x_I2C_RATE_100,
+	.i2c_rate[0]		= SAA716x_I2C_RATE_400,
+	.i2c_rate[1]            = SAA716x_I2C_RATE_400,
 	.adap_config		= {
 		{
 			/* adapter 0 */
@@ -4392,8 +4392,8 @@ static struct saa716x_config saa716x_tbs6281_config = {
 	.adapters		= 2,
 	.frontend_attach	= saa716x_tbs6281_frontend_attach,
 	.irq_handler		= saa716x_tbs6281_pci_irq,
-	.i2c_rate[0]		= SAA716x_I2C_RATE_100,
-	.i2c_rate[1]            = SAA716x_I2C_RATE_100,
+	.i2c_rate[0]		= SAA716x_I2C_RATE_400,
+	.i2c_rate[1]            = SAA716x_I2C_RATE_400,
 	.adap_config		= {
 		{
 			/* adapter 0 */

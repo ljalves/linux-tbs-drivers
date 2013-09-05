@@ -191,6 +191,11 @@ static int tbs5220_frontend_attach(struct dvb_usb_adapter *d)
 			tbs5220_op_rw(d->dev->udev, 0x8a, 0, 0,
 					buf, 2, TBS5220_WRITE_MSG);
 
+			buf[0] = 6;
+			buf[1] = 1;
+			tbs5220_op_rw(d->dev->udev, 0x8a, 0, 0,
+					buf, 2, TBS5220_WRITE_MSG);
+
 			return 0;
 		}
 	}

@@ -512,6 +512,11 @@ static int tbs5881_frontend_attach(struct dvb_usb_adapter *d)
 			tbs5881_op_rw(d->dev->udev, 0x8a, 0, 0,
 					buf, 2, TBS5881_WRITE_MSG);
 
+			buf[0] = 6;
+			buf[1] = 1;
+			tbs5881_op_rw(d->dev->udev, 0x8a, 0, 0,
+					buf, 2, TBS5881_WRITE_MSG);
+
 			tbs5881_init(d);
 			return 0;
 		}
