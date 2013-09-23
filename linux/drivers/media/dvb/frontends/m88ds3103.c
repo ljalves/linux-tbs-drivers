@@ -1112,8 +1112,12 @@ static int m88ds3103_demod_connect(struct dvb_frontend *fe, s32 carrier_offset_k
 			m88ds3103_writereg(state, 0x22, val1);
 			m88ds3103_writereg(state, 0x24, val2);	
 			
-			if(state->config->ci_mode)
-				val1 = 0x03;
+			if(state->config->ci_mode){
+				if(state->config->ci_mode == 2)
+					val1 = 0x43;
+				else
+					val1 = 0x03;
+			}
 			else if(state->config->ts_mode)
 				val1 = 0x06;
 			else
@@ -1178,8 +1182,12 @@ static int m88ds3103_demod_connect(struct dvb_frontend *fe, s32 carrier_offset_k
 			m88ds3103_writereg(state, 0x24, val2);					
 		}
 		
-		if(state->config->ci_mode)
-			val1 = 0x03;
+		if(state->config->ci_mode){
+			if(state->config->ci_mode == 2)
+				val1 = 0x43;
+			else
+				val1 = 0x03;
+		}
 		else if(state->config->ts_mode)
 			val1 = 0x06;
 		else
