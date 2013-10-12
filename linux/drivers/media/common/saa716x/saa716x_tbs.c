@@ -38,6 +38,7 @@
 #include <media/rc-core.h>
 
 #include "saa716x_tbs.h"
+#include "tbs62x0fe.h"
 #include "tbsctrl.h"
 
 #include "tda18212.h"
@@ -105,6 +106,10 @@ MODULE_PARM_DESC(ci_spd, "for internal use only: default 0");
 static unsigned int enable_ir = 1;
 module_param(enable_ir, int, 0644);
 MODULE_PARM_DESC(enable_ir, "Enable IR support for TBS cards: default 1");
+
+static unsigned int cxd2820r = 1;
+module_param(cxd2820r, int, 0644);
+MODULE_PARM_DESC(cxd2820r, "Enable open-source TDA18212/CXD2820r drivers for TBS 62x0, 6284 cards: default 1");
 
 #define DRIVER_NAME "SAA716x TBS"
 
@@ -2134,6 +2139,13 @@ static int load_config_tt_s2_4100(struct saa716x_dev *saa716x)
 #define SAA716x_MODEL_TURBOSIGHT_TBS6220 "TurboSight TBS 6220"
 #define SAA716x_DEV_TURBOSIGHT_TBS6220   "DVB-T/T2/C"
 
+static struct tbs62x0fe_config tbs6220fe_config = {
+	.tbs62x0fe_address = 0x6c,
+
+	.tbs62x0_ctrl1 = tbsctrl1,
+	.tbs62x0_ctrl2 = tbsctrl2,
+};
+
 static struct cxd2820r_config cxd2820r_config0 = {
 	.i2c_address = 0x6c, /* (0xd8 >> 1) */
 	.ts_mode = 0x38,
@@ -2204,14 +2216,23 @@ static int saa716x_tbs6220_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 0 ) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS6220FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c->i2c_adapter,NULL);
-		if (!adapter->fe)
-			goto exit;
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c->i2c_adapter,NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c->i2c_adapter, &tda18212_config)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c->i2c_adapter, &tda18212_config)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6220fe_config, &i2c->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		dprintk(SAA716x_ERROR, 1, "Done!");
@@ -2248,6 +2269,19 @@ static struct saa716x_config saa716x_tbs6220_config = {
 #define SAA716x_MODEL_TURBOSIGHT_TBS6280 "TurboSight TBS 6280"
 #define SAA716x_DEV_TURBOSIGHT_TBS6280   "DVB-T/T2/C"
 
+static struct tbs62x0fe_config tbs6280fe_config0 = {
+	.tbs62x0fe_address = 0x6c,
+
+	.tbs62x0_ctrl1 = tbsctrl1,
+	.tbs62x0_ctrl2 = tbsctrl2,
+};
+
+static struct tbs62x0fe_config tbs6280fe_config1 = {
+	.tbs62x0fe_address = 0x6d,
+
+	.tbs62x0_ctrl1 = tbsctrl1,
+	.tbs62x0_ctrl2 = tbsctrl2,
+};
 
 static int saa716x_tbs6280_frontend_attach(struct saa716x_adapter *adapter, int count)
 {
@@ -2267,14 +2301,23 @@ static int saa716x_tbs6280_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 0) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS6280FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c0->i2c_adapter, NULL);
-		if (!adapter->fe)
-			goto exit;
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c0->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c0->i2c_adapter, &tda18212_config0)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c0->i2c_adapter, &tda18212_config0)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config0, &i2c0->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c1->i2c_adapter, 160 + 16*count, mac);
@@ -2287,14 +2330,23 @@ static int saa716x_tbs6280_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 1) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS62x0FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c0->i2c_adapter, NULL);
-		if (!adapter->fe)
-			goto exit;
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c0->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c0->i2c_adapter, &tda18212_config1)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c0->i2c_adapter, &tda18212_config1)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config1, &i2c0->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c1->i2c_adapter, 160 + 16*count, mac);
@@ -3158,15 +3210,23 @@ static int saa716x_tbs6284_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 0) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS62x0FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c1->i2c_adapter, NULL);
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c1->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!adapter->fe)
-			goto exit;
-
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c1->i2c_adapter, &tda18212_config0)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c1->i2c_adapter, &tda18212_config0)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config0, &i2c1->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c0->i2c_adapter, 160 + 16*count, mac);
@@ -3179,14 +3239,23 @@ static int saa716x_tbs6284_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 1) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS62x0FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c1->i2c_adapter, NULL);
-		if (!adapter->fe)
-			goto exit;
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c1->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c1->i2c_adapter, &tda18212_config1)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c1->i2c_adapter, &tda18212_config1)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config1, &i2c1->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c0->i2c_adapter, 160 + 16*count, mac);
@@ -3208,15 +3277,23 @@ static int saa716x_tbs6284_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 2) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS62x0FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c0->i2c_adapter, NULL);
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config0, &i2c0->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!adapter->fe)
-			goto exit;
-
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c0->i2c_adapter, &tda18212_config0)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c0->i2c_adapter, &tda18212_config0)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config0, &i2c0->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c0->i2c_adapter, 160 + 16*count, mac);
@@ -3229,15 +3306,23 @@ static int saa716x_tbs6284_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	if (count == 3) {
 		dprintk(SAA716x_ERROR, 1, "Probing for TBS62x0FE %d", count);
-		adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c0->i2c_adapter, NULL);
+		if (cxd2820r)
+		{
+			adapter->fe = cxd2820r_attach(&cxd2820r_config1, &i2c0->i2c_adapter, NULL);
+			if (!adapter->fe)
+				goto exit;
 
-		if (!adapter->fe)
-			goto exit;
-
-		if (!dvb_attach(tda18212_attach, adapter->fe,
-			&i2c0->i2c_adapter, &tda18212_config1)) {
-			dvb_frontend_detach(adapter->fe);
-			goto exit;
+			if (!dvb_attach(tda18212_attach, adapter->fe,
+				&i2c0->i2c_adapter, &tda18212_config1)) {
+				dvb_frontend_detach(adapter->fe);
+				goto exit;
+			}
+		}
+		else
+		{
+			adapter->fe = dvb_attach(tbs62x0fe_attach, &tbs6280fe_config1, &i2c0->i2c_adapter);
+			if (!adapter->fe)
+				goto exit;
 		}
 
 		tbs_read_mac(&i2c0->i2c_adapter, 160 + 16*count, mac);

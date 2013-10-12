@@ -33,6 +33,7 @@
 #include "s5h1411.h"
 #include "lgdt3305.h"
 #include "mb86a20s.h"
+#include "tbs5280fe.h"
 #include "tda18212.h"
 #include "cxd2820r.h"
 
@@ -43,6 +44,10 @@ MODULE_LICENSE("GPL");
 static unsigned int debug;
 module_param(debug, int, 0644);
 MODULE_PARM_DESC(debug, "enable debug messages [dvb]");
+
+static unsigned int cxd2820r = 1;
+module_param(cxd2820r, int, 0644);
+MODULE_PARM_DESC(cxd2820r, "Enable open-source TDA18212/CXD2820r drivers: default 1");
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -179,6 +184,22 @@ void tbs5280ctrl3(struct cx231xx *dev, int type, u32 val)
 	else
 		dev->gpio_val = val;
 }
+
+static struct tbs5280fe_config tbs5280fe_config0 = {
+	.tbs5280fe_address = 0x6c,
+
+	.tbs5280_ctrl1 = tbs5280ctrl1,
+	.tbs5280_ctrl2 = tbs5280ctrl2,
+	.tbs5280_ctrl3 = tbs5280ctrl3,
+};
+
+static struct tbs5280fe_config tbs5280fe_config1 = {
+	.tbs5280fe_address = 0x6d,
+
+	.tbs5280_ctrl1 = tbs5280ctrl1,
+	.tbs5280_ctrl2 = tbs5280ctrl2,
+	.tbs5280_ctrl3 = tbs5280ctrl3,
+};
 
 static struct cxd2820r_config cxd2820r_config0 = {
 	.i2c_address = 0x6c, /* (0xd8 >> 1) */
@@ -863,8 +884,13 @@ static int dvb_init(struct cx231xx *dev)
 		break;
 	case CX231XX_BOARD_TBS_5280:
 
-		dev->dvb[i]->frontend = dvb_attach(cxd2820r_attach, i ? &cxd2820r_config1 : &cxd2820r_config0,
-						&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, NULL);
+		if (cxd2820r)
+			dev->dvb[i]->frontend = dvb_attach(cxd2820r_attach, i ? &cxd2820r_config1 : &cxd2820r_config0,
+							&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, NULL);
+		else
+			dev->dvb[i]->frontend = dvb_attach(tbs5280fe_attach,
+							i ? &tbs5280fe_config1 : &tbs5280fe_config0,
+							&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap);
 
 		if (dev->dvb[i]->frontend == NULL) {
 			printk(DRIVER_NAME
@@ -876,8 +902,9 @@ static int dvb_init(struct cx231xx *dev)
 		/* define general-purpose callback pointer */
 		dvb->frontend->callback = cx231xx_tuner_callback;
 
-		dvb_attach(tda18212_attach, dev->dvb[i]->frontend,
-			&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, i ? &tda18212_config1 : &tda18212_config0);
+		if (cxd2820r)
+			dvb_attach(tda18212_attach, dev->dvb[i]->frontend,
+				&dev->i2c_bus[dev->board.demod_i2c_master].i2c_adap, i ? &tda18212_config1 : &tda18212_config0);
 		break;
 	
 	default:

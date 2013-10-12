@@ -11,6 +11,8 @@
 
 #include <linux/version.h>
 #include "tbs5880.h"
+#include "tbs5880fe.h"
+#include "tbs5880ctrl.h"
 #include "tda18212.h"
 #include "cxd2820r.h"
 
@@ -43,6 +45,10 @@ static int dvb_usb_tbs5880_debug;
 module_param_named(debug, dvb_usb_tbs5880_debug, int, 0644);
 MODULE_PARM_DESC(debug, "set debugging level (1=info 2=xfer (or-able))." 
 							DVB_USB_DEBUG_STATUS);
+
+static unsigned int cxd2820r = 1;
+module_param(cxd2820r, int, 0644);
+MODULE_PARM_DESC(cxd2820r, "Enable open-source TDA18212/CXD2820r drivers: default 1");
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -516,6 +522,11 @@ static void tbs5880_led_ctrl(struct dvb_frontend *fe, int offon)
 
 static struct dvb_usb_device_properties tbs5880_properties;
 
+static struct tbs5880fe_config tbs5880fe_config = {
+	.tbs5880fe_address = 0x6c,
+	.tbs5880_ctrl = tbs5880ctrl,
+};
+
 static struct cxd2820r_config cxd2820r_config = {
 	.i2c_address = 0x6c, /* (0xd8 >> 1) */
 	.ts_mode = 0x08,
@@ -543,11 +554,11 @@ static struct tda18212_config tda18212_config = {
 
 static int tbs5880_tuner_attach(struct dvb_usb_adapter *adap)
 {
+	if (!cxd2820r)	return 0;
+
 	if (!dvb_attach(tda18212_attach, adap->fe[0], &adap->dev->i2c_adap,
 		&tda18212_config))
 		return -EIO;
-
-	info("Attached TDA18212!\n");
 
 	return 0;
 }
@@ -561,11 +572,19 @@ static int tbs5880_frontend_attach(struct dvb_usb_adapter *d)
 	mutex_init(&state->ca_mutex);
 
 	if (tbs5880_properties.adapter->tuner_attach == &tbs5880_tuner_attach) {
-		d->fe[0] = dvb_attach(cxd2820r_attach, &cxd2820r_config,
-			&d->dev->i2c_adap,NULL);
+		if (cxd2820r)
+		{
+			d->fe[0] = dvb_attach(cxd2820r_attach, &cxd2820r_config,
+				&d->dev->i2c_adap,NULL);
+		}
+		else
+		{
+			d->fe[0] = dvb_attach(tbs5880fe_attach, &tbs5880fe_config,
+				&d->dev->i2c_adap);
+		}
 
 		if (d->fe[0] != NULL) {
-			info("Attached CXD2820r!\n");
+			info("Attached TBS5880FE!\n");
 
 			buf[0] = 7;
 			buf[1] = 1;
