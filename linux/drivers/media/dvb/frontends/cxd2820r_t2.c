@@ -116,13 +116,6 @@ int cxd2820r_set_frontend_t2(struct dvb_frontend *fe,
 		return -EINVAL;
 	}
 
-	num = if_khz;
-	num *= 0x1000000;
-	if_ctl = cxd2820r_div_u64_round_closest(num, 41000);
-	buf[0] = ((if_ctl >> 16) & 0xff);
-	buf[1] = ((if_ctl >>  8) & 0xff);
-	buf[2] = ((if_ctl >>  0) & 0xff);
-
 	/* PLP filtering */
 	if (c->dvbt2_plp_id < 0 || c->dvbt2_plp_id > 255) {
 		dbg("%s: Disable PLP filtering\n", __func__);
@@ -138,6 +131,13 @@ int cxd2820r_set_frontend_t2(struct dvb_frontend *fe,
 		if (ret)
 			goto error;
 	}
+
+	num = if_khz;
+	num *= 0x1000000;
+	if_ctl = cxd2820r_div_u64_round_closest(num, 41000);
+	buf[0] = ((if_ctl >> 16) & 0xff);
+	buf[1] = ((if_ctl >>  8) & 0xff);
+	buf[2] = ((if_ctl >>  0) & 0xff);
 
 	ret = cxd2820r_wr_regs(priv, 0x020b6, buf, 3);
 	if (ret)
