@@ -8,6 +8,7 @@ echo "TBS drivers building..."
 make
 
 echo "TBS drivers installing..."
+sudo rm -r -f /lib/modules/$(uname -r)/kernel/drivers/media
 sudo make install
 
 echo "TBS drivers installation done"
