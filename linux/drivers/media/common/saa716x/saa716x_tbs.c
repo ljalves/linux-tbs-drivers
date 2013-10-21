@@ -2490,6 +2490,7 @@ static int skystar2_express_hd_frontend_attach(struct saa716x_adapter *adapter,
 	struct saa716x_dev *saa716x = adapter->saa716x;
 	struct saa716x_i2c *i2c = &saa716x->i2c[SAA716x_I2C_BUS_A];
 	struct stv6110x_devctl *ctl;
+	u8 mac[6];
 
 	if (count < saa716x->config->adapters) {
 		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) SAA716x frontend Init",
@@ -2549,6 +2550,11 @@ static int skystar2_express_hd_frontend_attach(struct saa716x_adapter *adapter,
 			   master clock */
 			if (adapter->fe->ops.init)
 				adapter->fe->ops.init(adapter->fe);
+
+			saa716x_read_mac(&i2c->i2c_adapter, 0x3f8, mac);
+			memcpy(adapter->dvb_adapter.proposed_mac, mac, 6);
+			printk(KERN_INFO "SkyStar 2 eXpress HD MAC address = %pM\n",
+				adapter->dvb_adapter.proposed_mac);
 		} else {
 			goto exit;
 		}
