@@ -112,6 +112,26 @@ static int ttpci_eeprom_read_encodedMAC(struct i2c_adapter *adapter, u8 * encode
 	return 0;
 }
 
+static int kncpci_eeprom_read_MAC(struct i2c_adapter *adapter, u8 * MAC)
+{
+	int ret;
+	u8 b0[] = { 0x30 };
+
+	struct i2c_msg msg[] = {
+		{ .addr = 0x50, .flags = 0, .buf = b0, .len = 1 },
+		{ .addr = 0x50, .flags = I2C_M_RD, .buf = MAC, .len = 6 }
+	};
+
+	/* dprintk("%s\n", __func__); */
+
+	ret = i2c_transfer(adapter, msg, 2);
+
+	if (ret != 2)		/* Assume EEPROM isn't there */
+		return (-ENODEV);
+
+	return 0;
+}
+
 int ttpci_eeprom_parse_mac(struct i2c_adapter *adapter, u8 *proposed_mac)
 {
 	int ret, i;
@@ -128,6 +148,7 @@ int ttpci_eeprom_parse_mac(struct i2c_adapter *adapter, u8 *proposed_mac)
 
 	ret = getmac_tt(decodedMAC, encodedMAC);
 	if( ret != 0 ) {
+#if 0
 		dprintk("adapter failed MAC signature check\n");
 		dprintk("encoded MAC from EEPROM was " );
 		for(i=0; i<19; i++) {
@@ -136,6 +157,10 @@ int ttpci_eeprom_parse_mac(struct i2c_adapter *adapter, u8 *proposed_mac)
 		dprintk("%.2x\n", encodedMAC[19]);
 		memset(proposed_mac, 0, 6);
 		return ret;
+#else
+		ret = kncpci_eeprom_read_MAC(adapter, decodedMAC);
+		if( ret != 0 )	return ret;
+#endif
 	}
 
 	memcpy(proposed_mac, decodedMAC, 6);
