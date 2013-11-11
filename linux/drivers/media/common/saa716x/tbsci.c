@@ -15,6 +15,7 @@ struct tbsci_state {
 	struct i2c_adapter *i2c_adap;
 	int nr, mode;
 	void *priv; /* struct saa716x_adapter *priv; */
+	int status;
 };
 
 int tbsci_i2c_read(struct tbsci_state *state)
@@ -25,7 +26,8 @@ int tbsci_i2c_read(struct tbsci_state *state)
 	struct i2c_msg msg = { .addr = TBSCI_I2C_ADDR, .flags = I2C_M_RD,
 			.buf = &buf, .len = 1 };
 
-	if (((state->mode == 2) || (state->mode == 4) || (state->mode == 6))
+	if (((state->mode == 2) || (state->mode == 4) ||
+			(state->mode == 6) || (state->mode == 8))
 		&& (state->nr == 1))
 		msg.addr += 1;
 
@@ -48,7 +50,8 @@ int tbsci_i2c_write(struct tbsci_state *state,
 	struct i2c_msg msg = { .addr = TBSCI_I2C_ADDR, .flags = 0,
 			.buf = &buf[0], .len = len + 1 };
 
-	if (((state->mode == 2) || (state->mode == 4) || (state->mode == 6)) 
+	if (((state->mode == 2) || (state->mode == 4) ||
+			(state->mode == 6) || (state->mode == 8)) 
 		&& (state->nr == 1))
 		msg.addr += 1;
 
@@ -199,6 +202,7 @@ static int tbsci_set_video_port(struct dvb_ca_en50221 *ca,
 	case 5:
 	case 6:
 	case 7:
+	case 8:
 		data = enable & 1;
 		tbsci_i2c_write(state, 0xc0, &data, 1);
 		break;
@@ -240,7 +244,7 @@ int tbsci_slot_reset(struct dvb_ca_en50221 *ca, int slot)
 
 	data = 0;
 	ret = tbsci_i2c_write(state, 0xc1, &data, 1);
-	msleep (1400);
+	msleep (1700);
 
 	mutex_unlock (&state->ca_mutex);
 
@@ -311,10 +315,29 @@ int tbsci_poll_slot_status(struct dvb_ca_en50221 *ca,
 			data ^= 1;
 		}
 
-		value = !data;
-		tbsci_i2c_write(state, 0xc3, &value, 1);
-		saa716x_gpio_write(saa716x, 6, value);
-		msleep(300);
+		if (state->status != data){
+			value = !data;
+			tbsci_i2c_write(state, 0xc3, &value, 1);
+			saa716x_gpio_write(saa716x, 6, value);
+			msleep(300);
+			state->status = data;
+		}
+
+		break;
+	case 8:
+		data = saa716x_gpio_read(saa716x, state->nr ? 6 : 2);
+		if (data != saa716x_gpio_read(saa716x, state->nr ? 3 : 14)) {
+			data  = 0;
+		} else {
+			data ^= 1;
+		}
+
+		if (state->status != data){
+			value = !data;
+			saa716x_gpio_write(saa716x, state->nr ? 17 : 20, value);
+			msleep(300);
+			state->status = data;
+		}
 
 		break;
 	}
@@ -346,6 +369,7 @@ int tbsci_init(struct saa716x_adapter *adap, int tbsci_nr, int tbsci_mode)
 	
 	state->nr = tbsci_nr;
 	state->mode = tbsci_mode;
+	state->status = 0;
 
 	mutex_init(&state->ca_mutex);
 
@@ -398,6 +422,10 @@ int tbsci_init(struct saa716x_adapter *adap, int tbsci_nr, int tbsci_mode)
 			break;
 		case 0x66:
 		case 0x68:
+			if (state->mode == 8) {
+				printk("tbsci: Initializing TBS 6991SE CI %d slot\n",
+					tbsci_nr);
+			} else {
 			if (state->mode != 6) {
 				printk("tbsci: Initializing TBS 6991 v13 CI %d slot\n",
 					tbsci_nr);
@@ -414,7 +442,7 @@ int tbsci_init(struct saa716x_adapter *adap, int tbsci_nr, int tbsci_mode)
 			} else {
 				printk("tbsci: Initializing TBS 6680 CI %d slot\n",
 					tbsci_nr);
-			}
+			}}
 			break;
 		default:
 			ret = -EREMOTEIO;
