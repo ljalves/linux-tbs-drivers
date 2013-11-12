@@ -136,6 +136,9 @@ obj-$(CONFIG_DVB_USB_TECHNISAT_USB2) += dvb-usb-technisat-usb2.o
 dvb-usb-it913x-objs := it913x.o
 obj-$(CONFIG_DVB_USB_IT913X) += dvb-usb-it913x.o
 
+dvb-usb-af9035-objs = af9035.o
+obj-$(CONFIG_DVB_USB_AF9035) += dvb-usb-af9035.o
+
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core/ -Idrivers/media/dvb/frontends/
 # due to tuner-xc3028
 EXTRA_CFLAGS += -Idrivers/media/common/tuners

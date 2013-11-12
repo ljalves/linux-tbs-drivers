@@ -467,6 +467,17 @@ config DVB_USB_EC168
 	help
 	  Say Y here to support the E3C EC168 DVB-T USB2.0 receiver.
 
+config DVB_USB_AF9035
+        tristate "Afatech AF9035 DVB-T USB2.0 support"
+        depends on DVB_USB
+        select DVB_AF9033
+        select MEDIA_TUNER_TUA9001 if !MEDIA_TUNER_CUSTOMISE
+        select MEDIA_TUNER_FC0011 if !MEDIA_TUNER_CUSTOMISE
+        select MEDIA_TUNER_MXL5007T if !MEDIA_TUNER_CUSTOMISE
+        select MEDIA_TUNER_TDA18218 if !MEDIA_TUNER_CUSTOMISE
+        help
+          Say Y here to support the Afatech AF9035 based DVB USB receiver.
+
 config DVB_USB_AZ6027
 	tristate "Azurewave DVB-S/S2 USB2.0 AZ6027 support"
 	depends on DVB_USB
